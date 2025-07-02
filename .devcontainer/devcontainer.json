@@ -12,6 +12,9 @@
         },
         "ghcr.io/azure/azure-dev/azd": {
             "version": "latest"
+        },
+        "ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {
+            "version": "latest"
         }
     },
 
@@ -31,7 +34,7 @@
 
     // Use 'postCreateCommand' to run commands after the container is created.
     // "postCreateCommand": "dotnet restore",
-    "onCreateCommand": "dotnet new install Aspire.ProjectTemplates::9.3.1 --force",
+    "onCreateCommand": "dotnet tool install --global aspire.cli --prerelease && dotnet new install Aspire.ProjectTemplates::9.3.1 --force",
     "postStartCommand": "dotnet dev-certs https --trust",
     "customizations": {
         "vscode": {
