@@ -1,0 +1,17 @@
+POST http://localhost:7071/api/AgentOrchestrator_HttpStart
+Content-Type: application/json
+
+{
+  "ClaimId": "789001",
+  "PolicyNumber": "POLICY-67890",
+  "ClaimantName": "John Doe",
+  "ClaimantContact": "john.doe@example.com",
+  "DateOfAccident": "2023-01-01",
+  "AccidentDescription": "Minor fender bender.",
+  "VehicleMake": "Toyota",
+  "VehicleModel": "Camry",
+  "VehicleYear": 2020,
+  "LicensePlate": "ABC123",
+  "AmountClaimed": 1000.00,
+  "Status": 1
+}
