@@ -1,3 +1,5 @@
+using AgentFunction.ApiService.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
@@ -6,9 +8,15 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
+// Register claims service
+builder.Services.AddScoped<IClaimsService, ClaimsService>();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Agent Function API", Version = "v1" });
+});
 
 var app = builder.Build();
 
@@ -36,6 +44,23 @@ app.MapGet("/weatherforecast", () =>
     return forecast;
 })
 .WithName("GetWeatherForecast");
+
+// Claims History API endpoint
+app.MapGet("/customers/{customerId}/claims/history", async (string customerId, IClaimsService claimsService) =>
+{
+    if (string.IsNullOrWhiteSpace(customerId))
+    {
+        return Results.BadRequest("Customer ID is required");
+    }
+
+    var claims = await claimsService.GetCustomerClaimsHistoryAsync(customerId);
+    return Results.Ok(claims);
+})
+.WithName("GetCustomerClaimsHistory")
+.WithSummary("Get customer claims history")
+.WithDescription("Returns the historical insurance claims for a specific customer")
+.Produces(200, typeof(IEnumerable<AgentFunction.ApiService.Models.Claim>))
+.Produces(400);
 
 app.MapDefaultEndpoints();
 
