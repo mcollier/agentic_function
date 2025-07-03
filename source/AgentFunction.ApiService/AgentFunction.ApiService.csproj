@@ -6,10 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-
+  <ItemGroup>
+    <ProjectReference Include="..\AgentFunction.ServiceDefaults\AgentFunction.ServiceDefaults.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.2" />
   </ItemGroup>
 
 </Project>
