@@ -8,62 +8,62 @@ public record MyClaimData
     /// <summary>
     /// Unique identifier for the claim.
     /// </summary>
-    public string ClaimId { get; init; }
+    public required string ClaimId { get; init; }
 
     /// <summary>
     /// Policy number associated with the claim.
     /// </summary>
-    public string PolicyNumber { get; init; }
+    public required string PolicyNumber { get; init; }
 
     /// <summary>
     /// Name of the claimant.
     /// </summary>
-    public string ClaimantName { get; init; }
+    public required string ClaimantName { get; init; }
 
     /// <summary>
     /// Contact information for the claimant.
     /// </summary>
-    public string ClaimantContact { get; init; }
+    public required string ClaimantContact { get; init; }
 
     /// <summary>
     /// Date and time of the accident.
     /// </summary>
-    public DateTime DateOfAccident { get; init; }
+    public required DateTime DateOfAccident { get; init; }
 
     /// <summary>
     /// Description of the accident.
     /// </summary>
-    public string AccidentDescription { get; init; }
+    public required string AccidentDescription { get; init; }
 
     /// <summary>
     /// Make of the vehicle involved.
     /// </summary>
-    public string VehicleMake { get; init; }
+    public required string VehicleMake { get; init; }
 
     /// <summary>
     /// Model of the vehicle involved.
     /// </summary>
-    public string VehicleModel { get; init; }
+    public required string VehicleModel { get; init; }
 
     /// <summary>
     /// Year of the vehicle involved.
     /// </summary>
-    public int VehicleYear { get; init; }
+    public required int VehicleYear { get; init; }
 
     /// <summary>
     /// License plate number of the vehicle.
     /// </summary>
-    public string LicensePlate { get; init; }
+    public required string LicensePlate { get; init; }
 
     /// <summary>
     /// Amount claimed for the accident.
     /// </summary>
-    public decimal AmountClaimed { get; init; }
+    public required decimal AmountClaimed { get; init; }
 
     /// <summary>
     /// Status of the claim.
     /// </summary>
-    public ClaimStatus Status { get; init; }
+    public required ClaimStatus Status { get; init; }
 }
 
 /// <summary>
