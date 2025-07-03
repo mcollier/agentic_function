@@ -15,7 +15,3 @@ Content-Type: application/json
   "AmountClaimed": 1000.00,
   "Status": 1
 }
-
-###
-
-GET http://localhost:7259/api/AgentOrchestrator_HttpStart
