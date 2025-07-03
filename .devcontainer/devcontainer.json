@@ -35,7 +35,7 @@
     // Use 'postCreateCommand' to run commands after the container is created.
     // "postCreateCommand": "dotnet restore",
     "onCreateCommand": "dotnet tool install --global aspire.cli --prerelease && dotnet new install Aspire.ProjectTemplates::9.3.1 --force",
-    "postStartCommand": "dotnet dev-certs https --trust",
+    "postStartCommand": "dotnet build source/AgentFunction.sln && dotnet dev-certs https --trust",
     "customizations": {
         "vscode": {
             "extensions": [

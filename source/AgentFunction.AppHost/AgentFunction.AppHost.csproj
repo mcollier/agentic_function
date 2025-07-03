@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AgentFunction.ApiService\AgentFunction.ApiService.csproj" />
     <ProjectReference Include="..\AgentFunction.Web\AgentFunction.Web.csproj" />
+    <ProjectReference Include="..\AgentFunction.Functions\AgentFunction.Functions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

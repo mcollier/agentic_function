@@ -70,6 +70,14 @@ ScaffoldingReadMe.txt
 # StyleCop
 StyleCopReport.xml
 
+# Azurite storage emulator files
+AzuriteConfig
+__azurite_db_*
+__blobstorage__/
+__queuestorage__/
+__tablestorage__/
+# **/__azurite_db*/
+
 # Files built by Visual Studio
 *_i.c
 *_p.c
@@ -86,6 +94,7 @@ StyleCopReport.xml
 *.rsp
 # but not Directory.Build.rsp, as it configures directory-level build defaults
 !Directory.Build.rsp
+
 *.sbr
 *.tlb
 *.tli
