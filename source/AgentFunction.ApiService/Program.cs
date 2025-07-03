@@ -2,9 +2,6 @@ using AgentFunction.ApiService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire client integrations.
-builder.AddServiceDefaults();
-
 // Add services to the container.
 builder.Services.AddProblemDetails();
 
@@ -119,8 +116,6 @@ app.MapGet("/customers/{customerId}/claims/history", (string customerId) =>
 .WithDescription("Returns the historical insurance claims for a specific customer")
 .Produces(200, typeof(IEnumerable<Claim>))
 .Produces(400);
-
-app.MapDefaultEndpoints();
 
 app.Run();
 
