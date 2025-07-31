@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AgentFunction.Functions.Models;
 using AgentFunction.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.AI;
@@ -10,87 +11,69 @@ using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AgentFunction.Functions;
 
-public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")] ChatCompletionAgent chatCompletionAgent)
+public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")] ChatCompletionAgent claimsProcessingAgent)
 {
     [Function(nameof(IsClaimComplete))]
-    public async Task<bool> IsClaimComplete(
+    public async Task<ClaimCompletionResult> IsClaimComplete(
         [ActivityTrigger] Claim claim,
         FunctionContext executionContext
         )
     {
-        // TODO: Add Semantic Kernel logic to check if the claim is complete
         ILogger logger = executionContext.GetLogger(nameof(IsClaimComplete));
 
         logger.LogInformation("Checking if claim {claimId} is complete.", claim.ClaimId);
 
-        // var modelId = Environment.GetEnvironmentVariable("AZURE_OPENAI_MODEL_ID");
-        // var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
-        // var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
-
-        // var kernelBuilder = Kernel.CreateBuilder()
-        //                            .AddAzureOpenAIChatCompletion(deploymentName: "gpt-4o-mini",
-        //                                                          modelId: "gpt-4o-mini",
-        //                                                          serviceId: "gpt-4o-mini");
-
-        // TODO: Use Azure Entra ID authentication instead of API key in production
-        // var kernelBuilder = Kernel.CreateBuilder()
-        //                           .AddAzureOpenAIChatCompletion(modelId, endpoint, apiKey);
-        // kernelBuilder.Services.AddLogging(services => services.AddConsole().SetMinimumLevel(LogLevel.Trace));
-        // Kernel kernel = kernelBuilder.Build();
-
-        // var client = kernel.GetRequiredService<IChatClient>();
-
-        // var chatCompletionService = kernel.GetRequiredService<IChatCompletionService>();
-
-        // kernel.Plugins.AddFromType<ClaimsProcessingPlugin>("ClaimsProcessingPlugin");
-
-        // Enable planning
-        // OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
-        // {
-        //     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-        //  };
-
-        // ChatCompletionAgent agent = new()
-        // {
-        //     Kernel = kernel,
-        //     Name = "ClaimsCompletenessAgent",
-        //     Description = "An agent that validates the completeness of insurance claims.",
-        //     Instructions = """
-        //                    You are an agent that processes insurance claims. You will validate the completeness of claims.
-        //                    If the claim is complete, return true. If not, return false.                          
-        //                    """,
-        //     Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
-        //  };
-
         // Deserialize the claim to a string for processing
         var claimString = JsonSerializer.Serialize(claim);
-        var userMessage = "Validate the completeness of this claim: " + claimString;
 
-        AgentResponseItem<ChatMessageContent>? responseItem = null;
-        // await foreach (var item in agent.InvokeAsync(new ChatMessageContent(AuthorRole.User, userMessage)))
-        await foreach (var item in chatCompletionAgent.InvokeAsync(new ChatMessageContent(AuthorRole.User, userMessage)))
+        var prompt = $"Validate the completeness of the claim.\n"+
+                    $"Claim details: {claimString}\n"+
+                    $"Return a JSON object with the following structure:\n"+
+                    $"{{\n"+
+                    $"  \"ClaimId\": \"<claim id>\",\n"+
+                    $"  \"IsComplete\": true/false,\n"+
+                    $"  \"Message\": \"<explanation of completeness>\"\n"+
+                    $"}}";
+
+        AgentResponseItem<ChatMessageContent> ? responseItem = null;
+        await foreach (var item in claimsProcessingAgent.InvokeAsync(new ChatMessageContent(AuthorRole.User, prompt)))
         {
             responseItem = item;
             break; // Only need the first response
         }
 
-
-        var usage = responseItem?.Message?.Metadata?["Usage"] as Microsoft.Extensions.AI.UsageDetails;
+        var usage = responseItem?.Message?.Metadata?["Usage"] as UsageDetails;
         ShowUsageDetails(usage, logger);
 
-
-        // logger.LogInformation("Input tokens: {InputTokenCount}, Output tokens: {OutputTokenCount}", usage?.InputTokenCount, usage?.OutputTokenCount);
-        // responseItem.Message.Metadata.Values.ToList().ForEach(m => logger.LogInformation("Metadata: {metadata}", m));
         logger.LogInformation("Agent response: {response}", responseItem?.Message.Content);
 
-        // Simulate checking claim completeness
-        await Task.Delay(1000); // Simulate async operation
+        if (responseItem?.Message?.Content is null)
+        {
+            logger.LogWarning("Agent response content was null. Returning incomplete result.");
+            return await Task.FromResult(new ClaimCompletionResult(
+                claim.ClaimId,
+                false,
+                "Agent response was null or empty."
+            ));
+        }
 
-        return await Task.FromResult(true);
+        ClaimCompletionResult? result = JsonSerializer.Deserialize<ClaimCompletionResult>(responseItem.Message.Content);
+
+        if (result is null)
+        {
+            logger.LogWarning("Deserialization of agent response failed. Returning incomplete result.");
+            return await Task.FromResult(new ClaimCompletionResult(
+                claim.ClaimId,
+                false,
+                "Failed to deserialize agent response."
+            ));
+        }
+
+        return await Task.FromResult(result);
     }
 
     [Function(nameof(GetClaimHistory))]
-    public async Task<string> GetClaimHistory([ActivityTrigger] string claimId, FunctionContext executionContext)
+    public async Task<ClaimHistory> GetClaimHistory([ActivityTrigger] string claimId, FunctionContext executionContext)
     {
         ILogger logger = executionContext.GetLogger(nameof(GetClaimHistory));
 
@@ -99,27 +82,54 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
         // TODO: Call MCP / API to get claim history
         // This is a placeholder implementation. Replace with actual API call.
 
+        var claimHistory = new ClaimHistory();
+            
         // Simulate retrieving claim history
         var history = await Task.FromResult("Claim history data");
 
-        return history;
+        return claimHistory;
     }
 
 
     [Function(nameof(IsClaimFraudulent))]
-    public async Task<bool> IsClaimFraudulent([ActivityTrigger] object input, FunctionContext executionContext)
+    public async Task<ClaimFraudResult> IsClaimFraudulent([ActivityTrigger] ClaimFraudRequest claimFraudRequest, FunctionContext executionContext)
     {
         ILogger logger = executionContext.GetLogger(nameof(IsClaimFraudulent));
 
-        logger.LogInformation("Checking if claim is fraudulent with input: {input}.", input);
+        logger.LogInformation("Checking if claim is fraudulent with input: {input}.", claimFraudRequest);
 
-        // TODO: Add Semantic Kernel logic to check if the claim is fraudulent
-        // This is a placeholder implementation. Replace with actual fraud detection logic.
-        await Task.Delay(1000); // Simulate async operation
+        var prompt = $"Analyze the following claim and its history to determine if it is potentially fraudulent.\n" +
+                     $"Claim details: {JsonSerializer.Serialize(claimFraudRequest.Claim)}\n" +
+                     $"Claim history: {JsonSerializer.Serialize(claimFraudRequest.History)}\n" +
+                     $"Return a JSON object with the following structure:\n" +
+                     $"{{\n" +
+                     $"  \"ClaimId\": \"<claim id>\",\n"+
+                     $"  \"IsFraudulent\": true/false,\n" +
+                     $"  \"Reason\": \"<explanation of fraud detection>\"\n" +
+                     $"  \"Confidence\": 0-100\n" +
+                     $"}}";
 
-        bool isFraudulent = false; // Replace with actual fraud detection logic
+        AgentResponseItem<ChatMessageContent> ? responseItem = null;
+        await foreach (var item in claimsProcessingAgent.InvokeAsync(new ChatMessageContent(AuthorRole.User, prompt)))
+        {
+            responseItem = item;
+            break; // Only need the first response
+        }
 
-        return await Task.FromResult(isFraudulent);
+        var usage = responseItem?.Message?.Metadata?["Usage"] as UsageDetails;
+        ShowUsageDetails(usage, logger);
+
+        logger.LogInformation("Agent response: {response}", responseItem?.Message.Content);
+
+        ClaimFraudResult? fraudResult = JsonSerializer.Deserialize<ClaimFraudResult>(responseItem?.Message.Content);
+
+        if (fraudResult is null)
+        {
+            logger.LogWarning("Deserialization of agent response failed. Returning false.");
+            return await Task.FromResult(new ClaimFraudResult());
+        }
+
+        return await Task.FromResult(fraudResult);
     }
 
     [Function(nameof(DecideAction))]
@@ -189,19 +199,17 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
     {
         if (usage is not null)
         {
-            logger.LogInformation("Input tokens: {InputTokenCount}, Output tokens: {OutputTokenCount}, Total tokens: {TotalTokenCount}", usage.InputTokenCount, usage.OutputTokenCount, usage.TotalTokenCount);
+            logger.LogInformation("Input tokens: {InputTokenCount}, Output tokens: {OutputTokenCount}, Total tokens: {TotalTokenCount}",
+                usage.InputTokenCount,
+                usage.OutputTokenCount,
+                usage.TotalTokenCount);
 
-            ShowAdditionalProperties(usage.AdditionalCounts, logger);
-        }
-    }
-
-    private static void ShowAdditionalProperties(AdditionalPropertiesDictionary<long> additionalCounts, ILogger logger)
-    {
-        if (additionalCounts is not null && additionalCounts.Count > 0)
-        {
-            foreach (var kvp in additionalCounts)
+            if (usage.AdditionalCounts is not null && usage.AdditionalCounts.Count > 0)
             {
-                logger.LogInformation("Additional count - {Key}: {Value}", kvp.Key, kvp.Value);
+                foreach (var kvp in usage.AdditionalCounts)
+                {
+                    logger.LogInformation("Additional count - {Key}: {Value}", kvp.Key, kvp.Value);
+                }
             }
         }
     }

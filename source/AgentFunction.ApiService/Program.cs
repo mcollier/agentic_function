@@ -10,9 +10,16 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddScoped<IClaimsService, ClaimsService>();
+// builder.Services.AddControllers();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Add MCP support
+builder.Services.AddMcpServer()
+                .WithHttpTransport()
+                .WithStdioServerTransport()
+                .WithToolsFromAssembly();
 
 var app = builder.Build();
 
@@ -58,6 +65,9 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
 .Produces(400);
 
 app.MapDefaultEndpoints();
+// app.MapControllers();
+
+app.MapMcp();
 
 app.Run();
 

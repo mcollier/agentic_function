@@ -1,19 +1,13 @@
 using System.ClientModel;
 using AgentFunction.Functions;
 using Azure.AI.OpenAI;
-using Azure.Identity;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using OpenTelemetry;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -55,9 +49,9 @@ builder.Services.AddSingleton<ClaimsProcessingPlugin>();
 
 builder.Services.AddKeyedSingleton(
     serviceKey,
-    (sp, key) =>
+    (sp, key) => 
     {
-        KernelPluginCollection plugins = new();
+        KernelPluginCollection plugins = [];
         plugins.AddFromObject(sp.GetRequiredService<ClaimsProcessingPlugin>());
 
         var kernel = sp.GetRequiredService<Kernel>().Clone();
@@ -75,17 +69,6 @@ builder.Services.AddKeyedSingleton(
             Arguments = new KernelArguments(openAIPromptExecutionSettings)
         };
     });
-        // new ChatCompletionAgent()
-        // {
-        //     Instructions = """
-        //                    You are an agent that processes insurance claims. You will validate the completeness of claims.
-        //                    If the claim is complete, return true. If not, return false.                          
-        //                    """,
-        //     Description = "An agent that validates the completeness of insurance claims.",
-        //     Name = serviceKey,
-        //     Kernel = sp.GetRequiredService<Kernel>().Clone(),
-        //     Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
-        // });
 
 builder.Services.BuildServiceProvider();
 
