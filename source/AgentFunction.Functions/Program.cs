@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using ModelContextProtocol.Client;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -29,6 +30,27 @@ IChatClient chatClient;
 // TODO: Use Azure Entra ID authentication instead of API key in production
 string endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT is not set.");
 string apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new InvalidOperationException("AZURE_OPENAI_API_KEY is not set.");
+
+// Setting up MCP
+var clientTransport = new SseClientTransport(new SseClientTransportOptions
+{
+    Endpoint = new Uri("http://localhost:5476"),
+    TransportMode = HttpTransportMode.AutoDetect,
+});
+var mcpClient = await McpClientFactory.CreateAsync(clientTransport);
+var mcpTools = await mcpClient.ListToolsAsync();
+foreach (var tool in mcpTools)
+{
+    Console.WriteLine($"Tool: {tool.Name} ({tool.Description})");
+}
+
+// test execute mcp
+var mcpResult = await mcpClient.CallToolAsync(
+    "GetClaimsHistory",
+    new Dictionary<string, object?> { ["customerId"] = "12345" }
+    , cancellationToken: CancellationToken.None);
+
+Console.WriteLine($"MCP Result: {mcpResult.IsError} {mcpResult.Content[0]}");
 
 chatClient = new AzureOpenAIClient(endpoint: new Uri(endpoint),
                                    credential: new ApiKeyCredential(apiKey))
@@ -56,6 +78,9 @@ builder.Services.AddKeyedSingleton(
 
         var kernel = sp.GetRequiredService<Kernel>().Clone();
         kernel.Plugins.AddFromType<ClaimsProcessingPlugin>("ClaimsProcessingPlugin");
+
+                // Add MCP tools as functions
+        kernel.Plugins.AddFromFunctions("ClaimHistory", mcpTools.Select(aiFunction => aiFunction.AsKernelFunction()));
 
         return new ChatCompletionAgent()
         {

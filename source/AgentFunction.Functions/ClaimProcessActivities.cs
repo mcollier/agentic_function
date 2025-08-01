@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
+using OpenAI.Responses;
 
 namespace AgentFunction.Functions;
 
@@ -57,7 +58,9 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
             ));
         }
 
-        ClaimCompletionResult? result = JsonSerializer.Deserialize<ClaimCompletionResult>(responseItem.Message.Content);
+        var cleanResult = CleanJsonResponse(responseItem.Message.Content, logger);
+
+        ClaimCompletionResult? result = JsonSerializer.Deserialize<ClaimCompletionResult>(cleanResult);
 
         if (result is null)
         {
@@ -73,14 +76,36 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
     }
 
     [Function(nameof(GetClaimHistory))]
-    public async Task<ClaimHistory> GetClaimHistory([ActivityTrigger] string claimId, FunctionContext executionContext)
+    public async Task<ClaimHistory> GetClaimHistory([ActivityTrigger] string customerId, FunctionContext executionContext)
     {
         ILogger logger = executionContext.GetLogger(nameof(GetClaimHistory));
 
-        logger.LogInformation("Retrieving claim history for claim {claimId}.", claimId);
+        logger.LogInformation("Retrieving claim history for customer {customerId}.", customerId);
 
         // TODO: Call MCP / API to get claim history
         // This is a placeholder implementation. Replace with actual API call.
+
+        var prompt = $"Provide a summation of the claim history for customer {customerId}.\n" +
+                     $"Return a JSON object with the following structure:\n" +
+                     $"{{\n" +
+                     $"  \"CustomerId\": \"{customerId}\",\n" +
+                     $"  \"TotalClaims\": \"<total number of claims>\",\n" +
+                     $"  \"TotalClaimAmount\": \"<total claim amount in dollars>\",\n" +
+                     $"  \"MostRecentClaim\": \"<date of most recent claim>\",\n" +
+                     $"}}";
+
+        AgentResponseItem<ChatMessageContent> ? responseItem = null;
+        await foreach (var result in claimsProcessingAgent.InvokeAsync(new ChatMessageContent(AuthorRole.User, prompt)))
+        {
+            // Process each result
+            responseItem = result;
+            break; // Only need the first response
+        }
+
+        logger.LogInformation("Agent response: {response}", responseItem?.Message.Content);
+
+        var cleanResult = CleanJsonResponse(responseItem?.Message.Content, logger);
+        logger.LogInformation("Cleaned agent response: {response}", cleanResult);
 
         var claimHistory = new ClaimHistory();
             
@@ -121,7 +146,9 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
 
         logger.LogInformation("Agent response: {response}", responseItem?.Message.Content);
 
-        ClaimFraudResult? fraudResult = JsonSerializer.Deserialize<ClaimFraudResult>(responseItem?.Message.Content);
+        var cleanResult = CleanJsonResponse(responseItem?.Message.Content, logger);
+
+        ClaimFraudResult? fraudResult = JsonSerializer.Deserialize<ClaimFraudResult>(cleanResult);
 
         if (fraudResult is null)
         {
@@ -188,6 +215,93 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
         await Task.Delay(1000); // Simulate async operation
 
         return $"Adjuster notified for claim {claim.ClaimId}.";
+    }
+
+    /// <summary>
+    /// Cleans a JSON response string by trimming whitespace and extracting the JSON object if needed.
+    /// </summary>
+    /// <param name="response">The response string to clean.</param>
+    /// <returns>A cleaned JSON string.</returns>
+    private static string CleanJsonResponse(string response, ILogger logger)
+    {
+        // Implementation from https://github.com/Azure-Samples/Durable-Task-Scheduler/blob/3eb15a20daa5126943e60adf99c0e3f1f1764a5a/samples/durable-task-sdks/dotnet/Agents/PromptChaining/Worker/Services/BaseAgentService.cs#L131
+
+        if (string.IsNullOrEmpty(response))
+        {
+            logger.LogWarning("[JSON-PARSER] Response was null or empty");
+            return "{}";
+        }
+
+        logger.LogInformation($"[JSON-PARSER] Processing response ({response.Length} chars)");
+
+        // Trim any whitespace
+        response = response.Trim();
+
+        // Simple case: Check if response is already valid JSON
+        try
+        {
+            using (JsonDocument.Parse(response))
+            {
+                logger.LogInformation("[JSON-PARSER] Response is valid JSON");
+                return response;
+            }
+        }
+        catch (JsonException)
+        {
+            logger.LogInformation("[JSON-PARSER] Initial JSON validation failed, attempting to extract JSON");
+        }
+
+        // Handle markdown code blocks if present
+        if (response.Contains("```"))
+        {
+            // Find start and end of code block
+            int codeBlockStart = response.IndexOf("```");
+            int codeBlockEnd = response.LastIndexOf("```");
+
+            if (codeBlockStart != codeBlockEnd) // Make sure we found both opening and closing markers
+            {
+                // Extract content between code blocks
+                int startIndex = response.IndexOf('\n', codeBlockStart) + 1;
+                int endIndex = codeBlockEnd;
+                
+                // Make sure we have valid start and end indices
+                if (startIndex > 0 && endIndex > startIndex)
+                {
+                    string codeContent = response.Substring(startIndex, endIndex - startIndex).Trim();
+                    logger.LogInformation("[JSON-PARSER] Extracted content from code block");
+                    
+                    // Remove any language specifier like ```json
+                    if (codeContent.StartsWith("json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        codeContent = codeContent.Substring(4).Trim();
+                    }
+                    
+                    response = codeContent;
+                }
+            }
+        }
+
+        // Check if response is wrapped in backticks
+        if (response.StartsWith("`") && response.EndsWith("`"))
+        {
+            response = response.Substring(1, response.Length - 2).Trim();
+            logger.LogInformation("[JSON-PARSER] Removed backticks");
+        }
+
+        // Final validation
+        try
+        {
+            using (JsonDocument.Parse(response))
+            {
+                logger.LogInformation("[JSON-PARSER] Successfully validated JSON");
+                return response;
+            }
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError($"[JSON-PARSER] Failed to parse JSON: {ex.Message}");
+            return "{}"; // Return empty JSON object as fallback
+        }
     }
 
     /// <summary>
