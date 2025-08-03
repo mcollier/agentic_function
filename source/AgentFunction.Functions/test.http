@@ -1,4 +1,4 @@
-POST http://localhost:7071/api/AgentOrchestrator_HttpStart
+POST http://localhost:7071/api/StartClaimProcess
 Content-Type: application/json
 
 {
@@ -15,3 +15,11 @@ Content-Type: application/json
   "AmountClaimed": 1000.00,
   "Status": 1
 }
+
+
+###
+
+GET http://localhost:7071/runtime/webhooks/durabletask/instances/45075285c07f4b2b960e8af42c82dfda?code=9VTO3HYNWfKU-yOSsK5QOw0yitxF4Ix-Zj5Q0zuFGK0pAzFuyxx72w==
+
+###
+GET http://localhost:7071/api/claims/status/9fbc97925b1c4e3f9bd9d31802499238

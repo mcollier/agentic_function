@@ -1,6 +1,7 @@
 using System.ClientModel;
 using AgentFunction.Functions;
 using Azure.AI.OpenAI;
+using Azure.Identity;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,7 +30,7 @@ IChatClient chatClient;
 
 // TODO: Use Azure Entra ID authentication instead of API key in production
 string endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT is not set.");
-string apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new InvalidOperationException("AZURE_OPENAI_API_KEY is not set.");
+// string apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new InvalidOperationException("AZURE_OPENAI_API_KEY is not set.");
 
 // Setting up MCP
 var clientTransport = new SseClientTransport(new SseClientTransportOptions
@@ -39,21 +40,22 @@ var clientTransport = new SseClientTransport(new SseClientTransportOptions
 });
 var mcpClient = await McpClientFactory.CreateAsync(clientTransport);
 var mcpTools = await mcpClient.ListToolsAsync();
-foreach (var tool in mcpTools)
-{
-    Console.WriteLine($"Tool: {tool.Name} ({tool.Description})");
-}
+// foreach (var tool in mcpTools)
+// {
+//     Console.WriteLine($"Tool: {tool.Name} ({tool.Description})");
+// }
 
 // test execute mcp
-var mcpResult = await mcpClient.CallToolAsync(
-    "GetClaimsHistory",
-    new Dictionary<string, object?> { ["customerId"] = "12345" }
-    , cancellationToken: CancellationToken.None);
+// var mcpResult = await mcpClient.CallToolAsync(
+//     "GetClaimsHistory",
+//     new Dictionary<string, object?> { ["customerId"] = "12345" }
+//     , cancellationToken: CancellationToken.None);
 
-Console.WriteLine($"MCP Result: {mcpResult.IsError} {mcpResult.Content[0]}");
+// Console.WriteLine($"MCP Result: {mcpResult.IsError} {mcpResult.Content[0]}");
 
 chatClient = new AzureOpenAIClient(endpoint: new Uri(endpoint),
-                                   credential: new ApiKeyCredential(apiKey))
+                                   credential: new DefaultAzureCredential())
+                                //    credential: new ApiKeyCredential(apiKey))
                 .GetChatClient(deploymentName)
                 .AsIChatClient();
 var functionCallingChatClient = chatClient.AsBuilder().UseKernelFunctionInvocation().Build();
@@ -79,16 +81,16 @@ builder.Services.AddKeyedSingleton(
         var kernel = sp.GetRequiredService<Kernel>().Clone();
         kernel.Plugins.AddFromType<ClaimsProcessingPlugin>("ClaimsProcessingPlugin");
 
-                // Add MCP tools as functions
+        // Add MCP tools as functions
         kernel.Plugins.AddFromFunctions("ClaimHistory", mcpTools.Select(aiFunction => aiFunction.AsKernelFunction()));
 
         return new ChatCompletionAgent()
         {
             Instructions = """
-                           You are an agent that processes insurance claims. You will validate the completeness of claims.
-                           If the claim is complete, return true. If not, return false.                          
+                           You are an agent that processes automobile insurance claims.
+                           You can check the completeness of a claim, and check if a claim is fraudulent using the current claim and claim history.
                            """,
-            Description = "An agent that validates the completeness of insurance claims.",
+            Description = "An agent that processes automobile insurance claims",
             Name = serviceKey,
             Kernel = kernel,
             Arguments = new KernelArguments(openAIPromptExecutionSettings)

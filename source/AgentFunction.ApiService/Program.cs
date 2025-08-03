@@ -56,6 +56,13 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
     }
 
     var claims = await claimsService.GetClaimsHistoryAsync(customerId);
+
+    // If no claims where found, return a 404 response.  Otherwise, return 200.
+    if (claims == null || !claims.Any())
+    {
+        return Results.NotFound();
+    }
+    
     return Results.Ok(claims);
 })
 .WithName("GetCustomerClaimsHistory")

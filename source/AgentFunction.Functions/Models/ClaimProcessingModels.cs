@@ -10,7 +10,7 @@ public record ClaimCompletionResult (
 
 public record ClaimFraudRequest(
     Claim Claim,
-    ClaimHistory History
+    ClaimHistoryResult History
 );
 
 public record ClaimFraudResult(
@@ -20,7 +20,9 @@ public record ClaimFraudResult(
     int Confidence = 0
 );
 
-public record ClaimHistory (
-    string ClaimId = "",
-    List<Claim> ClaimHistoryItems = null
+public record ClaimHistoryResult(
+    string CustomerId,
+    int TotalClaims,
+    decimal TotalClaimAmount,
+    DateTime MostRecentClaimDate
 );

@@ -48,8 +48,9 @@ public class AgentOrchestrator
         });
 
         // Step 2: Get history from MCP plugin via SK
-        var history = await context.CallActivityAsync<ClaimHistory>(nameof(ClaimProcessActivities.GetClaimHistory), claim.ClaimId);
-        logger.LogInformation("Claim history retrieved: {history}", history);
+        var customerID = "32-445-8382";
+        var history = await context.CallActivityAsync<ClaimHistoryResult>(nameof(ClaimProcessActivities.GetClaimHistory), customerID);
+        logger.LogInformation("Claim history for customer {customerId} retrieved: {history}", customerID, history);
 
         context.SetCustomStatus(new
         {
@@ -58,7 +59,7 @@ public class AgentOrchestrator
             progress = 60
         });
 
-        ClaimFraudRequest claimFraudRequest = new(claim, history);
+        ClaimFraudRequest claimFraudRequest = new ClaimFraudRequest(Claim: claim, History: history);
 
         // Step 3: Fraud detection using SK
         var isFraudulent = await context.CallActivityAsync<ClaimFraudResult>(nameof(ClaimProcessActivities.IsClaimFraudulent), claimFraudRequest);

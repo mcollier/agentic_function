@@ -1,6 +1,28 @@
-# Copilot Instructions for agentic_function
+# Project Overview
 
-## General
+This project is a .NET Aspire application that demonstrates various features and capabilities of building a modern agentic (AI) application using a durable workflow orchestration.
+
+Key technologies include:
+- .NET Aspire 9
+- Azure Durable Functions
+- .ASP.NET minimal API
+- Semantic Kernel
+- MCP (using C# MCP SDK)
+
+## Folder Structure
+
+- `docs/`: Contains the documentation files.
+- `infra/`: Contains Azure Bicep infrastructure as code (IaC) files and configurations.
+- `source/`: Contains the main application code.
+  - `AgentFunction.ApiService/`: Contains the ASP.NET REST API and related code.
+  - `AgentFunction.AppHost/`: Contains the .NET Aspire application host entry point.
+  - `AgentFunction.Functions/`: Contains the Azure Functions and related code.
+  - `AgentFunction.Models/`: Contains the data models used across many of the projects.
+  - `AgentFunction.ServiceDefaults/`: Contains the .NET Aspire default services and configurations for the application.
+  - `AgentFunction.Web/`: Contains the Blazor WebAssembly client application.
+- `tests/`: Contains the unit and integration tests.
+
+<!-- ## General
 - Use C# 12+ features and .NET 9 patterns where appropriate.
 - Follow .NET naming conventions: PascalCase for types and methods, camelCase for local variables and parameters.
 
@@ -42,4 +64,4 @@
 
 ## Documentation
 - Add XML documentation comments for public APIs.
-- Reference official .NET Aspire and OpenTelemetry docs where relevant.
+- Reference official .NET Aspire and OpenTelemetry docs where relevant. -->

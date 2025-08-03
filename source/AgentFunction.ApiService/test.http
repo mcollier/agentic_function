@@ -1,8 +1,16 @@
+@hostAddress = http://localhost:5476
 # Get the weather
-GET https://localhost:7335/weatherforecast
+GET {{hostAddress}}/weatherforecast
 
 
 ###
 
 # Get claim history
-GET https://localhost:7335/customers/123/claims/history
+GET {{hostAddress}}/customers/32-445-8382/claims/history
+
+###
+GET {{hostAddress}}/customers/123/claims/history
+
+###
+
+GET {{hostAddress}}/api/customers/456/claims/history

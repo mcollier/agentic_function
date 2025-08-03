@@ -76,7 +76,7 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
     }
 
     [Function(nameof(GetClaimHistory))]
-    public async Task<ClaimHistory> GetClaimHistory([ActivityTrigger] string customerId, FunctionContext executionContext)
+    public async Task<ClaimHistoryResult> GetClaimHistory([ActivityTrigger] string customerId, FunctionContext executionContext)
     {
         ILogger logger = executionContext.GetLogger(nameof(GetClaimHistory));
 
@@ -89,9 +89,9 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
                      $"Return a JSON object with the following structure:\n" +
                      $"{{\n" +
                      $"  \"CustomerId\": \"{customerId}\",\n" +
-                     $"  \"TotalClaims\": \"<total number of claims>\",\n" +
-                     $"  \"TotalClaimAmount\": \"<total claim amount in dollars>\",\n" +
-                     $"  \"MostRecentClaim\": \"<date of most recent claim>\",\n" +
+                     $"  \"TotalClaims\": \"<total number of claims as an integer value>\",\n" +
+                     $"  \"TotalClaimAmount\": \"<total claim amount in dollars as a decimal value>\",\n" +
+                     $"  \"MostRecentClaimDate\": \"<date of most recent claim>\"\n" +
                      $"}}";
 
         AgentResponseItem<ChatMessageContent> ? responseItem = null;
@@ -107,12 +107,9 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
         var cleanResult = CleanJsonResponse(responseItem?.Message.Content, logger);
         logger.LogInformation("Cleaned agent response: {response}", cleanResult);
 
-        var claimHistory = new ClaimHistory();
-            
-        // Simulate retrieving claim history
-        var history = await Task.FromResult("Claim history data");
+        var claimHistoryResult = JsonSerializer.Deserialize<ClaimHistoryResult>(cleanResult);
 
-        return claimHistory;
+        return claimHistoryResult;
     }
 
 
@@ -147,6 +144,7 @@ public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")]
         logger.LogInformation("Agent response: {response}", responseItem?.Message.Content);
 
         var cleanResult = CleanJsonResponse(responseItem?.Message.Content, logger);
+        logger.LogInformation("Cleaned agent response: {response}", cleanResult);
 
         ClaimFraudResult? fraudResult = JsonSerializer.Deserialize<ClaimFraudResult>(cleanResult);
 

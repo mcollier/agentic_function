@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using AgentFunction.Functions.Models;
 using AgentFunction.Models;
 using Microsoft.SemanticKernel;
 
@@ -9,10 +10,8 @@ public class ClaimsProcessingPlugin
 {
     [KernelFunction("is_claim_complete")]
     [Description("Validates if the claim is complete based on the provided claim data.")]
-    public async Task<bool> IsClaimComplete(string claim)
+    public bool IsClaimComplete(string claim)
     {
-        await Task.Delay(500);
-
         // Assume claim is a JSON string; check for required fields
         if (claim is null)
         {
@@ -41,23 +40,39 @@ public class ClaimsProcessingPlugin
 
     [KernelFunction("is_claim_fraudulent")]
     [Description("Detects if the claim is potentially fraudulent based on claim details and history.")]
-    public async Task<bool> IsClaimFraudulent(string claim)
+    public bool IsClaimFraudulent(string claim, string claimHistory)
     {
-        await Task.Delay(500);
-
-        // Assume claim is a JSON string; check for signs of fraud
-        if (claim is null)
-        {
-            return false;
-        }
+        Console.WriteLine($"IsClaimFraudulent called with claim: {claim}");
+        Console.WriteLine($"IsClaimFraudulent called with claimHistory: {claimHistory}");
 
         try
         {
-            return false; // Placeholder: Implement fraud detection logic here
+            var claimHistoryItem = JsonSerializer.Deserialize<ClaimHistoryResult>(claimHistory);
+            var claimItem = JsonSerializer.Deserialize<Claim>(claim);
+
+            if (claimItem is null || claimHistoryItem is null)
+            {
+                return false;
+            }
+
+            // Simple fraud detection logic
+            if (claimItem.AmountClaimed > 10000 && claimHistoryItem.TotalClaims > 5)
+            {
+                // Example rule: High claim amount with many previous claims
+                return true;
+            }
+
+            if (claimItem.DateOfAccident < claimHistoryItem.MostRecentClaimDate.AddDays(-30))
+            {
+                // Example rule: Accident date is before the most recent claim date
+                return true;
+            }
+
+            return false;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // Invalid JSON
+            Console.WriteLine($"JSON deserialization error: {ex.Message}");
             return false;
         }
     }

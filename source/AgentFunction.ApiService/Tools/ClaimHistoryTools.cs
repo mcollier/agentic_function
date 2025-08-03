@@ -9,13 +9,18 @@ namespace AgentFunction.ApiService.Tools;
 public class ClaimHistoryTools(IClaimsService claimsService)
 {
     [McpServerTool(Name = "GetClaimsHistory"), Description("Retrieves the claims history for a specific customer.")]
-    public Task<IEnumerable<Claim>> GetClaimsHistoryAsync(string customerId)
+    public async Task<IEnumerable<Claim>> GetClaimsHistoryAsync(string customerId)
     {
         if (string.IsNullOrWhiteSpace(customerId))
         {
             throw new ArgumentException("Customer ID is required", nameof(customerId));
         }
 
-        return claimsService.GetClaimsHistoryAsync(customerId);
+        var claimHistory = await claimsService.GetClaimsHistoryAsync(customerId);
+
+        Console.WriteLine($"GetClaimsHistoryAsync called for customerId: {customerId}, returning {claimHistory?.Count() ?? 0} claims.");
+        Console.WriteLine(claimHistory);
+
+        return claimHistory ?? [];
     }
 }
