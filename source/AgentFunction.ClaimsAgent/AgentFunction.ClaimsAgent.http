@@ -1,0 +1,6 @@
+@AgentFunction.ClaimsAgent_HostAddress = http://localhost:5220
+
+GET {{AgentFunction.ClaimsAgent_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

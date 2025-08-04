@@ -20,7 +20,7 @@ public record Claim
     /// <summary>
     /// Contact information for the claimant.
     /// </summary>
-    public required string ClaimantContact { get; init; }
+    public string? ClaimantContact { get; init; }
 
     /// <summary>
     /// Date and time of the accident.
@@ -30,17 +30,17 @@ public record Claim
     /// <summary>
     /// Description of the accident.
     /// </summary>
-    public required string AccidentDescription { get; init; }
+    public string? AccidentDescription { get; init; }
 
     /// <summary>
     /// Make of the vehicle involved.
     /// </summary>
-    public required string VehicleMake { get; init; }
+    public string? VehicleMake { get; init; }
 
     /// <summary>
     /// Model of the vehicle involved.
     /// </summary>
-    public required string VehicleModel { get; init; }
+    public string? VehicleModel { get; init; }
 
     /// <summary>
     /// Year of the vehicle involved.
@@ -50,7 +50,7 @@ public record Claim
     /// <summary>
     /// License plate number of the vehicle.
     /// </summary>
-    public required string LicensePlate { get; init; }
+    public string? LicensePlate { get; init; }
 
     /// <summary>
     /// Amount claimed for the accident.

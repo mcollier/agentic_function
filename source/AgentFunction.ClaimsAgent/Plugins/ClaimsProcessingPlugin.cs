@@ -1,10 +1,10 @@
 using System.ComponentModel;
 using System.Text.Json;
-using AgentFunction.Functions.Models;
 using AgentFunction.Models;
+
 using Microsoft.SemanticKernel;
 
-namespace AgentFunction.Functions;
+namespace AgentFunction.ClaimsAgent.Plugins;
 
 public class ClaimsProcessingPlugin
 {
@@ -12,6 +12,8 @@ public class ClaimsProcessingPlugin
     [Description("Validates if the claim is complete based on the provided claim data.")]
     public bool IsClaimComplete(string claim)
     {
+        Console.WriteLine($"IsClaimComplete called with claim: {claim}");
+
         // Assume claim is a JSON string; check for required fields
         if (claim is null)
         {
@@ -29,11 +31,13 @@ public class ClaimsProcessingPlugin
                               claimData.AmountClaimed > 0 &&
                               claimData.DateOfAccident != default;
 
+            Console.WriteLine($"Claim completeness check for {claimData.ClaimId}: {isComplete}");
             return isComplete;
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
             // Invalid JSON
+            Console.WriteLine($"JSON deserialization error: {ex.Message}");
             return false;
         }
     }
@@ -62,9 +66,9 @@ public class ClaimsProcessingPlugin
                 return true;
             }
 
-            if (claimItem.DateOfAccident < claimHistoryItem.MostRecentClaimDate.AddDays(-30))
+            if (claimItem.DateOfAccident > DateTime.Now)
             {
-                // Example rule: Accident date is before the most recent claim date
+                // Example rule: Accident date is in the future
                 return true;
             }
 

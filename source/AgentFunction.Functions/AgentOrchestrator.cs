@@ -1,4 +1,4 @@
-using AgentFunction.Functions.Models;
+using System.Reactive;
 using AgentFunction.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
@@ -93,7 +93,7 @@ public class AgentOrchestrator
         });
 
         // Step 5: Generate summary
-        var summary = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.GenerateClaimSummary), claim);
+        var summary = await context.CallActivityAsync<ClaimSummaryResult>(nameof(ClaimProcessActivities.GenerateClaimSummary), claim);
 
         context.SetCustomStatus(new
         {
@@ -103,7 +103,8 @@ public class AgentOrchestrator
         });
 
         // Step 6: Notify the claimant
-        var notificationResult = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.NotifyClaimant), new { Email = claim.ClaimantContact, Body = summary });
+        NotificationRequest notificationRequest = new(claim.ClaimId, claim.ClaimantContact, summary.Summary);
+        var notificationResult = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.NotifyClaimant), notificationRequest);
 
         logger.LogInformation("Completed claim processing orchestration.");
     }

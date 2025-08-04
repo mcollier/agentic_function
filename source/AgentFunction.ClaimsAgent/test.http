@@ -1,0 +1,19 @@
+POST https://localhost:7056/agent/completions
+Content-Type: application/json
+
+{
+    "Prompt": "Your prompt here",
+    "ChatHistory": [],
+    "IsStreaming": false
+}
+
+###
+
+POST https://localhost:7056/agent/completions
+Content-Type: application/json
+
+{
+    "Prompt": "Validate the completeness of this claim.\n Claim details: {\"ClaimId\":\"12345\",\"ClaimantName\":\"John Doe\",\"PolicyNumber\":\"POL123456\",\"AmountClaimed\":1000,\"DateOfAccident\":\"2023-01-01\"}\n Return a JSON object with the following structure:\n{{\n \"ClaimId\": \"<claim id>\",\n \"IsComplete\": <true|false>,\n \"Message\": \"<explanation of completeness>\"\n}}",
+    "ChatHistory": [],
+    "IsStreaming": false
+}
