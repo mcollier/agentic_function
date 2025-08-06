@@ -25,13 +25,13 @@ public class ClaimsProcessingPlugin
             var claimData = JsonSerializer.Deserialize<Claim>(claim);
 
             bool isComplete = claimData is not null &&
-                              !string.IsNullOrWhiteSpace(claimData.ClaimId) &&
-                              !string.IsNullOrWhiteSpace(claimData.ClaimantName) &&
-                              !string.IsNullOrWhiteSpace(claimData.PolicyNumber) &&
-                              claimData.AmountClaimed > 0 &&
-                              claimData.DateOfAccident != default;
+                              !string.IsNullOrWhiteSpace(claimData.ClaimDetail.ClaimId) &&
+                              !string.IsNullOrWhiteSpace(claimData.Customer.Name) &&
+                              !string.IsNullOrWhiteSpace(claimData.ClaimDetail.PolicyNumber) &&
+                              claimData.ClaimDetail.AmountClaimed > 0 &&
+                              claimData.ClaimDetail.DateOfAccident != default;
 
-            Console.WriteLine($"Claim completeness check for {claimData.ClaimId}: {isComplete}");
+            Console.WriteLine($"Claim completeness check for {claimData.ClaimDetail.ClaimId}: {isComplete}");
             return isComplete;
         }
         catch (JsonException ex)
@@ -60,13 +60,13 @@ public class ClaimsProcessingPlugin
             }
 
             // Simple fraud detection logic
-            if (claimItem.AmountClaimed > 10000 && claimHistoryItem.TotalClaims > 5)
+            if (claimItem.ClaimDetail.AmountClaimed > 10000 && claimHistoryItem.TotalClaims > 5)
             {
                 // Example rule: High claim amount with many previous claims
                 return true;
             }
 
-            if (claimItem.DateOfAccident > DateTime.Now)
+            if (claimItem.ClaimDetail.DateOfAccident > DateTime.Now)
             {
                 // Example rule: Accident date is in the future
                 return true;

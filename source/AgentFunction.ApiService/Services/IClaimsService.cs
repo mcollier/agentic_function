@@ -5,5 +5,5 @@ namespace AgentFunction.ApiService.Services;
 
 public interface IClaimsService
 {
-    Task<IEnumerable<Claim>> GetClaimsHistoryAsync(string customerId);
+    Task<IEnumerable<ClaimDetail>> GetClaimsHistoryAsync(string customerId);
 }

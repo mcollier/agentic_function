@@ -1,10 +1,11 @@
 using System.Net;
-using AgentFunction.Functions;
 using AgentFunction.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
+
+namespace AgentFunction.Functions;
 
 public class ClaimProcessApi
 {

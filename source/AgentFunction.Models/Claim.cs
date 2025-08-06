@@ -1,7 +1,25 @@
 ﻿namespace AgentFunction.Models;
 
-public record Claim
+public record Customer
 {
+    /// <summary>
+    /// Unique identifier for the customer.
+    /// </summary>
+    public required string CustomerId { get; init; }
+
+    /// <summary>
+    /// Name of the customer.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Contact information for the customer.
+    /// </summary>
+    public string? ContactInfo { get; init; }
+}
+
+public record ClaimDetail
+{ 
     /// <summary>
     /// Unique identifier for the claim.
     /// </summary>
@@ -11,16 +29,6 @@ public record Claim
     /// Policy number associated with the claim.
     /// </summary>
     public required string PolicyNumber { get; init; }
-
-    /// <summary>
-    /// Name of the claimant.
-    /// </summary>
-    public required string ClaimantName { get; init; }
-
-    /// <summary>
-    /// Contact information for the claimant.
-    /// </summary>
-    public string? ClaimantContact { get; init; }
 
     /// <summary>
     /// Date and time of the accident.
@@ -61,6 +69,21 @@ public record Claim
     /// Status of the claim.
     /// </summary>
     public ClaimStatus Status { get; init; }
+}
+
+public record Claim
+{
+    public required Customer Customer { get; init; }
+
+    public required ClaimDetail ClaimDetail { get; init; }
+
+}
+
+public record ClaimHistory
+{
+    public required Customer Customer { get; init; }
+    
+    public required IEnumerable<ClaimDetail> Claims { get; init; }
 }
 
 /// <summary>

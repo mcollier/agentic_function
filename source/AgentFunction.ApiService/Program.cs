@@ -10,7 +10,6 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddScoped<IClaimsService, ClaimsService>();
-// builder.Services.AddControllers();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -72,7 +71,6 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
 .Produces(400);
 
 app.MapDefaultEndpoints();
-// app.MapControllers();
 
 app.MapMcp();
 

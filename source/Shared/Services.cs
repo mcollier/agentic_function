@@ -9,6 +9,7 @@ public static class Services
     public const string AzureStorage = "storage";
     public const string AzureStorageBlobs = "blobs";
     public const string AzureStorageQueues = "queues";
+    public const string AzureStorageTables = "tables";
 
     public const string AzureOpenAI = "openai";
 }

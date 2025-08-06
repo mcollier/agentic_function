@@ -5,16 +5,12 @@ using Azure.Communication.Email;
 using Azure.Storage.Queues;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
-using OpenAI.Responses;
 
 namespace AgentFunction.Functions;
 
-// public class ClaimProcessActivities([FromKeyedServices("ClaimsProcessingAgent")] ChatCompletionAgent claimsProcessingAgent)
 public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueServiceClient queueServiceClient)
 {
     [Function(nameof(IsClaimComplete))]
@@ -25,7 +21,7 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
     {
         ILogger logger = executionContext.GetLogger(nameof(IsClaimComplete));
 
-        logger.LogInformation("Checking if claim {claimId} is complete.", claim.ClaimId);
+        logger.LogInformation("Checking if claim {claimId} is complete.", claim.ClaimDetail.ClaimId);
 
         // Deserialize the claim to a string for processing
         var claimString = JsonSerializer.Serialize(claim);
@@ -39,66 +35,6 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
                     $"  \"Message\": \"<explanation of completeness>\"\n" +
                     $"}}";
 
-        #region "Old Code - Semantic Kernel Agent Call"
-        // var request = new AgentCompletionRequest
-        // {
-        //     Prompt = prompt,
-        //     ChatHistory = [],
-        //     IsStreaming = false
-        // };
-
-        // // Call the Semantic Kernel agent via HTTP client
-        // var claimsAgentClient = httpClientFactory.CreateClient("claimsagent");
-        // var result = await claimsAgentClient.PostAsJsonAsync("agent/completions", request);
-
-        // result.EnsureSuccessStatusCode();
-
-        // var responseContent = result.Content.ReadFromJsonAsAsyncEnumerable<AgentResponseItem<ChatMessageContent>>().ConfigureAwait(false);
-        // var responseContent = result.Content.ReadFromJsonAsAsyncEnumerable<AgentResponseItem<ChatMessageContent>>();
-        // var responseContent = result.Content.ReadFromJsonAsAsyncEnumerable<ChatMessageContent>();
-        // var responseContent = await result.Content.ReadFromJsonAsync<ChatMessageContent>().ConfigureAwait(false);
-
-        // AgentResponseItem<ChatMessageContent>? responseItem = null;
-        // ChatMessageContent? responseItem = responseContent;
-        // logger.LogInformation(responseContent.Content);
-
-        // await foreach (var item in responseContent)
-        // {
-        // logger.LogInformation("Received response from claims agent: {responseContent}", item);
-
-        // if (string.IsNullOrEmpty(item?.Message.Content))
-        // {
-        //     continue; // Skip if content is null
-        // }
-
-        //     responseItem = item;
-        //     break; // Only need the first response
-        // }
-
-        // AgentResponseItem<ChatMessageContent> ? responseItem = null;
-        // await foreach (var item in claimsProcessingAgent.InvokeAsync(new ChatMessageContent(AuthorRole.User, prompt)))
-        // {
-        //     responseItem = item;
-        //     break; // Only need the first response
-        // }
-        // var usage = responseContent?.Metadata?["Usage"] as OpenAI.Chat.ChatTokenUsage;
-        // ShowUsageDetails(usage, logger);
-
-        // if (responseContent?.Content is null)
-        // {
-        //     logger.LogWarning("Agent response content was null. Returning incomplete result.");
-        //     return await Task.FromResult(new ClaimCompletionResult(
-        //         claim.ClaimId,
-        //         false,
-        //         "Agent response was null or empty."
-        //     ));
-        // }
-
-        // logger.LogInformation("Agent response: {response}", responseContent.Content);
-
-        // var cleanResult = CleanJsonResponse(responseContent.Content, logger);
-        #endregion
-
         string agentResponse = await SubmitAgentRequestAsync(prompt, logger);
 
         ClaimCompletionResult? claimCompletionResult = JsonSerializer.Deserialize<ClaimCompletionResult>(agentResponse);
@@ -107,7 +43,7 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
         {
             logger.LogWarning("Deserialization of agent response failed. Returning incomplete result.");
             return await Task.FromResult(new ClaimCompletionResult(
-                claim.ClaimId,
+                claim.ClaimDetail.ClaimId,
                 false,
                 "Failed to deserialize agent response."
             ));
@@ -178,7 +114,7 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
             logger.LogWarning("Deserialization of agent response failed. Returning default ClaimFraudResult.");
             return await Task.FromResult(new ClaimFraudResult
             {
-                ClaimId = claimFraudRequest.Claim.ClaimId,
+                ClaimId = claimFraudRequest.Claim.ClaimDetail.ClaimId,
                 IsFraudulent = false,
                 Reason = "Failed to deserialize agent response.",
                 Confidence = 0
@@ -210,18 +146,18 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
     {
         ILogger logger = executionContext.GetLogger(nameof(GenerateClaimSummary));
 
-        logger.LogInformation("Generating claim summary for claim {claimId}.", claim.ClaimId);
+        logger.LogInformation("Generating claim summary for claim {claimId}.", claim.ClaimDetail.ClaimId);
 
         var prompt = $"Generate a lighthearted, engaging, and claimant-friendly summary of the claim's status or outcome.\n" +
                      $"Ensure the tone is upbeat but professional and appropriate for all claimants.\n" +
                      $"Highlight key details such as the claim ID, accident description, and claim amount.\n" +
                      $"Provide a clear list of next steps or recommendations for the claimant.\n" +
-                     $"Claim ID: {claim.ClaimId}\n" +
-                     $"Accident Description: {claim.AccidentDescription}\n" +
-                     $"Claim Amount: {claim.AmountClaimed}\n" +
+                     $"Claim ID: {claim.ClaimDetail.ClaimId}\n" +
+                     $"Accident Description: {claim.ClaimDetail.AccidentDescription}\n" +
+                     $"Claim Amount: {claim.ClaimDetail.AmountClaimed}\n" +
                      $"Return a JSON object with the following structure:\n" +
                      $"{{\n" +
-                     $"  \"ClaimId\": \"{claim.ClaimId}\",\n" +
+                     $"  \"ClaimId\": \"{claim.ClaimDetail.ClaimId}\",\n" +
                      $"  \"Summary\": \"<summary of the claim>\"\n" +
                      $"}}";
 
@@ -233,13 +169,13 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
             logger.LogWarning("Deserialization of agent response failed. Returning default summary.");
             return await Task.FromResult(new ClaimSummaryResult
             {
-                ClaimId = claim.ClaimId,
+                ClaimId = claim.ClaimDetail.ClaimId,
                 Summary = "Failed to generate summary due to deserialization error."
             });
         }
 
         // Simulate generating a summary
-        var summary = $"Summary for claim {claim.ClaimId}: {summaryResult.Summary}";
+        var summary = $"Summary for claim {claim.ClaimDetail.ClaimId}: {summaryResult.Summary}";
 
         return await Task.FromResult(summaryResult);
     }
@@ -285,31 +221,18 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
         return $"Claimant notified with input: {notificationRequest}.";
     }
 
-    // [Function(nameof(NotifyAdjuster))]
-    // public static async Task<string> NotifyAdjuster([ActivityTrigger] Claim claim, FunctionContext executionContext)
-    // {
-
-    //     // Simulate sending notification to claimant
-    //     await Task.Delay(1000); // Simulate async operation
-
-    //     return $"Claimant notified with input: {input}.";
-    // }
-
     [Function(nameof(NotifyAdjuster))]
     public async Task<string> NotifyAdjuster([ActivityTrigger] Claim claim, FunctionContext executionContext)
     {
         ILogger logger = executionContext.GetLogger(nameof(NotifyAdjuster));
-        logger.LogInformation("Notifying adjuster for claim {claimId}.", claim.ClaimId);
+        logger.LogInformation("Notifying adjuster for claim {claimId}.", claim.ClaimDetail.ClaimId);
 
         // Write a message to the Azure Storage Queue
         var queueClient = queueServiceClient.GetQueueClient("claim-notifications");
         await queueClient.CreateIfNotExistsAsync();
         await queueClient.SendMessageAsync(JsonSerializer.Serialize(claim));
 
-        // Simulate sending notification to adjuster
-        // await Task.Delay(1000); // Simulate async operation
-
-        return $"Adjuster notified for claim {claim.ClaimId}.";
+        return $"Adjuster notified for claim {claim.ClaimDetail.ClaimId}.";
     }
 
     /// <summary>
