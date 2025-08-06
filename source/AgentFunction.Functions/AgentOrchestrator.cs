@@ -104,10 +104,19 @@ public class AgentOrchestrator
         // Step 6: Notify the claimant
         if (claim.Customer.ContactInfo != null)
         {
+            string emailAddress = claim.Customer.ContactInfo;
             NotificationRequest notificationRequest = new(claim.ClaimDetail.ClaimId, claim.Customer.ContactInfo, summary.Summary);
             var notificationResult = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.NotifyClaimant), notificationRequest);
         }
-        
+
+        context.SetCustomStatus(new
+        {
+            step = "Complete",
+            message = $"Claim processing for {claim.ClaimDetail.ClaimId} is complete.",
+            progress = 100
+        });
+
+
         logger.LogInformation("Completed claim processing orchestration.");
     }
 }

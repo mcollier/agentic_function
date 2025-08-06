@@ -12,6 +12,8 @@ var azureDurableTaskSchedulerConnectionString = builder.AddParameter("azureDurab
 var azureDurableTaskSchedulerTaskHubName = builder.AddParameter("azureDurableTaskSchedulerTaskHubName");
 var senderEmailAddress = builder.AddParameter("senderEmailAddress");
 
+var recipientEmailAddress = builder.AddParameter("recipientEmailAddress");
+
 var storage = builder.AddAzureStorage(Shared.Services.AzureStorage)
                      .RunAsEmulator(azurite =>
                      {
@@ -55,6 +57,7 @@ var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shar
 .WithEnvironment("TASKHUB_NAME", azureDurableTaskSchedulerTaskHubName)
 .WithEnvironment("COMMUNICATION_SERVICES_CONNECTION_STRING", azureCommunicationServiceConnectionString)
 .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
+.WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
 .WithExternalHttpEndpoints();
 
 builder.Build().Run();

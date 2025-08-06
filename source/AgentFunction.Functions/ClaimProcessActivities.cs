@@ -191,9 +191,12 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
         string senderEmailAddress = Environment.GetEnvironmentVariable("SENDER_EMAIL_ADDRESS")
             ?? throw new InvalidOperationException("Sender email address is not set.");
 
+        string recipientEmailAddress = Environment.GetEnvironmentVariable("RECIPIENT_EMAIL_ADDRESS")
+            ?? throw new InvalidOperationException("Recipient email address is not set.");
+
         var emailClient = new EmailClient(connectionString);
         var sender = senderEmailAddress;
-        var recipient = notificationRequest.EmailAddress;
+        var recipient = recipientEmailAddress; //notificationRequest.EmailAddress;
         var subject = "Claim Notification";
 
         var emailMessage = new EmailMessage(
