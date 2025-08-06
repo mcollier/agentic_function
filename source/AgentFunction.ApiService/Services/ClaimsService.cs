@@ -82,6 +82,97 @@ public class ClaimsService : IClaimsService
             [
                 new ClaimDetail
                 {
+                    ClaimId = "CLM-20240122-006",
+                    PolicyNumber = "POL-555555555",
+                    DateOfAccident = new DateTime(2024, 1, 22, 16, 45, 0, DateTimeKind.Utc),
+                    AccidentDescription = "Windshield cracked by flying debris.",
+                    VehicleMake = "Ford",
+                    VehicleModel = "F-150",
+                    VehicleYear = 2020,
+                    LicensePlate = "TRK2020",
+                    AmountClaimed = 800.00m,
+                    Status = ClaimStatus.Approved
+                },
+                new ClaimDetail
+                {
+                    ClaimId = "CLM-20240125-007",
+                    PolicyNumber = "POL-555555555",
+                    DateOfAccident = new DateTime(2024, 1, 25, 13, 10, 0, DateTimeKind.Utc),
+                    AccidentDescription = "Rear bumper scratched in parking lot.",
+                    VehicleMake = "Ford",
+                    VehicleModel = "F-150",
+                    VehicleYear = 2020,
+                    LicensePlate = "TRK2020",
+                    AmountClaimed = 400.00m,
+                    Status = ClaimStatus.Submitted
+                },
+                new ClaimDetail
+                {
+                    ClaimId = "CLM-20240201-008",
+                    PolicyNumber = "POL-555555555",
+                    DateOfAccident = new DateTime(2024, 2, 1, 7, 30, 0, DateTimeKind.Utc),
+                    AccidentDescription = "Flat tire due to nail on driveway.",
+                    VehicleMake = "Ford",
+                    VehicleModel = "F-150",
+                    VehicleYear = 2020,
+                    LicensePlate = "TRK2020",
+                    AmountClaimed = 120.00m,
+                    Status = ClaimStatus.Submitted
+                },
+                new ClaimDetail
+                {
+                    ClaimId = "CLM-20240210-009",
+                    PolicyNumber = "POL-555555555",
+                    DateOfAccident = new DateTime(2024, 2, 10, 18, 0, 0, DateTimeKind.Utc),
+                    AccidentDescription = "Side mirror broken by passing vehicle.",
+                    VehicleMake = "Ford",
+                    VehicleModel = "F-150",
+                    VehicleYear = 2020,
+                    LicensePlate = "TRK2020",
+                    AmountClaimed = 250.00m,
+                    Status = ClaimStatus.Submitted
+                },
+                new ClaimDetail
+                {
+                    ClaimId = "CLM-20240215-010",
+                    PolicyNumber = "POL-555555555",
+                    DateOfAccident = new DateTime(2024, 2, 15, 20, 20, 0, DateTimeKind.Utc),
+                    AccidentDescription = "Minor fire damage to engine compartment.",
+                    VehicleMake = "Ford",
+                    VehicleModel = "F-150",
+                    VehicleYear = 2020,
+                    LicensePlate = "TRK2020",
+                    AmountClaimed = 2000.00m,
+                    Status = ClaimStatus.Rejected
+                },
+                new ClaimDetail
+                {
+                    ClaimId = "CLM-20240220-011",
+                    PolicyNumber = "POL-555555555",
+                    DateOfAccident = new DateTime(2024, 2, 20, 12, 0, 0, DateTimeKind.Utc),
+                    AccidentDescription = "Broken tail light after reversing into pole.",
+                    VehicleMake = "Ford",
+                    VehicleModel = "F-150",
+                    VehicleYear = 2020,
+                    LicensePlate = "TRK2020",
+                    AmountClaimed = 180.00m,
+                    Status = ClaimStatus.Approved
+                },
+                new ClaimDetail
+                {
+                    ClaimId = "CLM-20240225-012",
+                    PolicyNumber = "POL-555555555",
+                    DateOfAccident = new DateTime(2024, 2, 25, 15, 50, 0, DateTimeKind.Utc),
+                    AccidentDescription = "Paint damage from vandalism.",
+                    VehicleMake = "Ford",
+                    VehicleModel = "F-150",
+                    VehicleYear = 2020,
+                    LicensePlate = "TRK2020",
+                    AmountClaimed = 950.00m,
+                    Status = ClaimStatus.Submitted
+                },
+                new ClaimDetail
+                {
                     ClaimId = "CLM-20240120-004",
                     PolicyNumber = "POL-555555555",
                     DateOfAccident = new DateTime(2024, 1, 20, 11, 15, 0, DateTimeKind.Utc),
