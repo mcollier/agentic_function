@@ -68,14 +68,14 @@ public record ClaimDetail
     /// <summary>
     /// Status of the claim.
     /// </summary>
-    public ClaimStatus Status { get; init; }
+    public ClaimStatus Status { get; set; }
 }
 
 public record Claim
 {
     public required Customer Customer { get; init; }
 
-    public required ClaimDetail ClaimDetail { get; init; }
+    public required ClaimDetail ClaimDetail { get; set; }
 
 }
 
