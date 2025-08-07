@@ -9,7 +9,11 @@ namespace AgentFunction.ClaimsAgent.Plugins;
 public class ClaimsProcessingPlugin
 {
     [KernelFunction("is_claim_complete")]
-    [Description("Validates if the claim is complete based on the provided claim data.")]
+    [Description("""
+                 Validates if the claim is complete based on the provided claim data and returns
+                 true if the claim contains the required data, or false if the claim is incomplete.
+                 """
+                )]
     public bool IsClaimComplete(string claim)
     {
         Console.WriteLine($"IsClaimComplete called with claim: {claim}");
@@ -31,7 +35,7 @@ public class ClaimsProcessingPlugin
                               claimData.ClaimDetail.AmountClaimed > 0 &&
                               claimData.ClaimDetail.DateOfAccident != default;
 
-            Console.WriteLine($"Claim completeness check for {claimData.ClaimDetail.ClaimId}: {isComplete}");
+            Console.WriteLine($"Claim completeness check for {claimData?.ClaimDetail.ClaimId}: {isComplete}");
             return isComplete;
         }
         catch (JsonException ex)
@@ -43,11 +47,23 @@ public class ClaimsProcessingPlugin
     }
 
     [KernelFunction("is_claim_fraudulent")]
-    [Description("Detects if the claim is potentially fraudulent based on claim details and history.")]
-    public bool IsClaimFraudulent(string claim, string claimHistory)
+    [Description("""
+                Detects if the claim is potentially fraudulent based on claim details and history and returns:
+                IsFraudulent: true or false
+                Reason: string describing the reason for fraud detection
+                Example:
+                {
+                    "IsFraudulent": true,
+                    "Reason": "High claim amount with many previous claims"
+                }
+                """
+                )]
+    public FraudDetectionResult IsClaimFraudulent(string claim, string claimHistory)
     {
         Console.WriteLine($"IsClaimFraudulent called with claim: {claim}");
         Console.WriteLine($"IsClaimFraudulent called with claimHistory: {claimHistory}");
+
+        FraudDetectionResult result = new(false, "No fraud detected");
 
         try
         {
@@ -56,28 +72,30 @@ public class ClaimsProcessingPlugin
 
             if (claimItem is null || claimHistoryItem is null)
             {
-                return false;
+                return new FraudDetectionResult(true, "Invalid claim or claim history data");
             }
 
             // Simple fraud detection logic
             if (claimItem.ClaimDetail.AmountClaimed > 10000 && claimHistoryItem.TotalClaims > 5)
             {
                 // Example rule: High claim amount with many previous claims
-                return true;
+                return new FraudDetectionResult(true, "High claim amount with many previous claims");
             }
 
             if (claimItem.ClaimDetail.DateOfAccident > DateTime.Now)
             {
                 // Example rule: Accident date is in the future
-                return true;
+                return new FraudDetectionResult(true, "Accident date is in the future");
             }
 
-            return false;
+            return result;
         }
         catch (JsonException ex)
         {
             Console.WriteLine($"JSON deserialization error: {ex.Message}");
-            return false;
+            return new FraudDetectionResult(true, "Invalid JSON data");
         }
     }
 }
+
+public record FraudDetectionResult(bool IsFraudulent, string Reason);

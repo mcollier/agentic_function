@@ -2,7 +2,8 @@ using System.ComponentModel;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Azure OpenAI
+// Get parameters to use in other resources.
+// These parameters can be used to configure the application or pass values to services.
 var existingAzureAiFoundryName = builder.AddParameter("existingAzureAiFoundryName");
 var existingAzureAiFoundryResourceGroup = builder.AddParameter("existingAzureAiFoundryResourceGroup");
 var existingAzureOpenAIResourceGroup = builder.AddParameter("existingAzureOpenAIResourceGroup");
@@ -41,6 +42,7 @@ var apiService = builder.AddProject<Projects.ApiService>(Shared.Services.ApiServ
     .WithHttpHealthCheck("/health");
 
 var claimsAgent = builder.AddProject<Projects.ClaimsAgentService>(Shared.Services.ClaimsAgentService)
+    .WithEnvironment("MCP_SERVER_URL", apiService.GetEndpoint("http"))
     .WithHttpHealthCheck("/health")
     .WithReference(azureOpenAi);
 

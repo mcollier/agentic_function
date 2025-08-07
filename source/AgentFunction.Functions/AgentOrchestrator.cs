@@ -36,6 +36,9 @@ public class AgentOrchestrator
         if (!claimCompletionResult.IsComplete)
         {
             logger.LogInformation("Claim is incomplete. Orchestration will not proceed.");
+
+            // TODO: Handle incomplete claim scenario, e.g., notify claimant or log.
+            
             return;
         }
 
@@ -58,7 +61,7 @@ public class AgentOrchestrator
             progress = 60
         });
 
-        ClaimFraudRequest claimFraudRequest = new ClaimFraudRequest(Claim: claim, History: history);
+        ClaimFraudRequest claimFraudRequest = new(Claim: claim, History: history);
 
         // Step 3: Fraud detection using SK
         var isFraudulent = await context.CallActivityAsync<ClaimFraudResult>(nameof(ClaimProcessActivities.IsClaimFraudulent), claimFraudRequest);
@@ -105,7 +108,7 @@ public class AgentOrchestrator
         if (claim.Customer.ContactInfo != null)
         {
             string emailAddress = claim.Customer.ContactInfo;
-            NotificationRequest notificationRequest = new(claim.ClaimDetail.ClaimId, claim.Customer.ContactInfo, summary.Summary);
+            NotificationRequest notificationRequest = new(claim.ClaimDetail.ClaimId, claim.Customer.ContactInfo, summary.SummaryHtml);
             var notificationResult = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.NotifyClaimant), notificationRequest);
         }
 

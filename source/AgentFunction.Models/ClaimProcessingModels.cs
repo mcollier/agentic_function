@@ -27,7 +27,8 @@ public record ClaimHistoryResult(
 
 public record ClaimSummaryResult(
     string ClaimId = "",
-    string Summary = ""
+    string Summary = "",
+    string SummaryHtml = ""
 );
 
 public record NotificationRequest(

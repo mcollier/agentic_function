@@ -99,6 +99,7 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
         var prompt = $"Analyze the following claim and its history to determine if it is potentially fraudulent.\n" +
                      $"Claim details: {JsonSerializer.Serialize(claimFraudRequest.Claim)}\n" +
                      $"Claim history: {JsonSerializer.Serialize(claimFraudRequest.History)}\n" +
+                     $"Use the is_claim_fraudulent plugin to determine if the claim is fraudulent.\n" +
                      $"Return a JSON object with the following structure:\n" +
                      $"{{\n" +
                      $"  \"ClaimId\": \"<claim id>\",\n" +
@@ -152,13 +153,15 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
                      $"Ensure the tone is upbeat but professional and appropriate for all claimants.\n" +
                      $"Highlight key details such as the claim ID, accident description, and claim amount.\n" +
                      $"Provide a clear list of next steps or recommendations for the claimant.\n" +
+                     $"Provide two options for the summary: a plain-text and an HTML version.\n" +
                      $"Claim ID: {claim.ClaimDetail.ClaimId}\n" +
                      $"Accident Description: {claim.ClaimDetail.AccidentDescription}\n" +
                      $"Claim Amount: {claim.ClaimDetail.AmountClaimed}\n" +
                      $"Return a JSON object with the following structure:\n" +
                      $"{{\n" +
                      $"  \"ClaimId\": \"{claim.ClaimDetail.ClaimId}\",\n" +
-                     $"  \"Summary\": \"<summary of the claim>\"\n" +
+                     $"  \"Summary\": \"<summary of the claim>\",\n" +
+                     $"  \"SummaryHtml\": \"<summary of the claim in HTML>\"\n" +
                      $"}}";
 
         string agentResponse = await SubmitAgentRequestAsync(prompt, logger);
@@ -359,7 +362,6 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
         };
 
         // Call the Semantic Kernel agent via HTTP client
-
         var claimsAgentClient = httpClientFactory.CreateClient("claimsagent");
         var result = await claimsAgentClient.PostAsJsonAsync("agent/completions", request);
 

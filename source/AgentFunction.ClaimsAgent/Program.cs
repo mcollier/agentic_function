@@ -1,12 +1,10 @@
 using System.ClientModel.Primitives;
-using System.Threading.Tasks;
 using AgentFunction.ClaimsAgent.Plugins;
 using Azure.Identity;
 using Microsoft.Extensions.Azure;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
 using ModelContextProtocol.Client;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,8 +12,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-
-
 
 // Enable diagnostics.
 AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnostics", true);
@@ -42,11 +38,22 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddKernel();
 
+// Set up Semantic Kernel logging.
+// Enable model diagnostics with sensitive data.
+AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnosticsSensitive", true);
+
+
 // Add AI Services.
 AddAIServices(builder);
 
 // Add Agent.
 await AddAgent(builder);
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing =>
+    {
+        tracing.AddSource("Microsoft.SemanticKernel");
+    });
 
 var app = builder.Build();
 
@@ -64,32 +71,7 @@ app.MapControllers();
 
 app.UseHttpsRedirection();
 
-
-// var summaries = new[]
-// {
-//     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-// };
-
-// app.MapGet("/weatherforecast", () =>
-// {
-//     var forecast =  Enumerable.Range(1, 5).Select(index =>
-//         new WeatherForecast
-//         (
-//             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-//             Random.Shared.Next(-20, 55),
-//             summaries[Random.Shared.Next(summaries.Length)]
-//         ))
-//         .ToArray();
-//     return forecast;
-// })
-// .WithName("GetWeatherForecast");
-
 app.Run();
-
-// record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-// {
-//     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-// }
 
 static void AddAIServices(WebApplicationBuilder builder)
 {
@@ -133,9 +115,11 @@ static async Task AddAgent(WebApplicationBuilder builder)
     };
 
     // MCP tools
+    string mcpServerUrl = Environment.GetEnvironmentVariable("MCP_SERVER_URL") ??
+                            throw new InvalidOperationException("MCP_SERVER_URL environment variable is not set.");
     var clientTransport = new SseClientTransport(new SseClientTransportOptions
     {
-        Endpoint = new Uri("http://localhost:5476"),
+        Endpoint = new Uri(mcpServerUrl),
         TransportMode = HttpTransportMode.AutoDetect
     });
     var mcpClient = await McpClientFactory.CreateAsync(clientTransport);
@@ -146,7 +130,7 @@ static async Task AddAgent(WebApplicationBuilder builder)
         var kernel = sp.GetRequiredService<Kernel>();
         kernel.Plugins.AddFromType<ClaimsProcessingPlugin>("ClaimsProcessingPlugin");
 
-        // TODO: Add MCP tools!
+        // Add MCP tools!
         kernel.Plugins.AddFromFunctions("ClaimHistory", mcpTools.Select(aiFunction => aiFunction.AsKernelFunction()));
 
         return new ChatCompletionAgent(promptTemplateConfig, new KernelPromptTemplateFactory())
