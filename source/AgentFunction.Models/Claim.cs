@@ -1,7 +1,25 @@
 ﻿namespace AgentFunction.Models;
 
-public record Claim
+public record Customer
 {
+    /// <summary>
+    /// Unique identifier for the customer.
+    /// </summary>
+    public required string CustomerId { get; init; }
+
+    /// <summary>
+    /// Name of the customer.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Contact information for the customer.
+    /// </summary>
+    public string? ContactInfo { get; init; }
+}
+
+public record ClaimDetail
+{ 
     /// <summary>
     /// Unique identifier for the claim.
     /// </summary>
@@ -13,16 +31,6 @@ public record Claim
     public required string PolicyNumber { get; init; }
 
     /// <summary>
-    /// Name of the claimant.
-    /// </summary>
-    public required string ClaimantName { get; init; }
-
-    /// <summary>
-    /// Contact information for the claimant.
-    /// </summary>
-    public required string ClaimantContact { get; init; }
-
-    /// <summary>
     /// Date and time of the accident.
     /// </summary>
     public DateTime DateOfAccident { get; init; }
@@ -30,17 +38,17 @@ public record Claim
     /// <summary>
     /// Description of the accident.
     /// </summary>
-    public required string AccidentDescription { get; init; }
+    public string? AccidentDescription { get; init; }
 
     /// <summary>
     /// Make of the vehicle involved.
     /// </summary>
-    public required string VehicleMake { get; init; }
+    public string? VehicleMake { get; init; }
 
     /// <summary>
     /// Model of the vehicle involved.
     /// </summary>
-    public required string VehicleModel { get; init; }
+    public string? VehicleModel { get; init; }
 
     /// <summary>
     /// Year of the vehicle involved.
@@ -50,7 +58,7 @@ public record Claim
     /// <summary>
     /// License plate number of the vehicle.
     /// </summary>
-    public required string LicensePlate { get; init; }
+    public string? LicensePlate { get; init; }
 
     /// <summary>
     /// Amount claimed for the accident.
@@ -61,6 +69,21 @@ public record Claim
     /// Status of the claim.
     /// </summary>
     public ClaimStatus Status { get; init; }
+}
+
+public record Claim
+{
+    public required Customer Customer { get; init; }
+
+    public required ClaimDetail ClaimDetail { get; init; }
+
+}
+
+public record ClaimHistory
+{
+    public required Customer Customer { get; init; }
+    
+    public required IEnumerable<ClaimDetail> Claims { get; init; }
 }
 
 /// <summary>

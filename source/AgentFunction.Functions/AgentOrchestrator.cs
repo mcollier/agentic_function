@@ -1,104 +1,82 @@
-using System.Text.Json;
-using AgentFunction.Functions;
 using AgentFunction.Models;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask;
-using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 
 namespace AgentFunction.Functions;
 
 public class AgentOrchestrator
 {
-    // private static Claim GetClaimData(ILogger logger, string requestBody)
-    // {
-    //     Claim claim;
-    //     if (!string.IsNullOrWhiteSpace(requestBody))
-    //     {
-    //         try
-    //         {
-    //             var deserialized = JsonSerializer.Deserialize<Claim>(requestBody);
-    //             if (deserialized is not null)
-    //             {
-    //                 claim = deserialized;
-    //             }
-    //             else
-    //             {
-    //                 logger.LogInformation("Deserialized claim is null. Using default claim for testing.");
-    //                 claim = GetDefaultClaim();
-    //             }
-    //         }
-    //         catch (JsonException ex)
-    //         {
-    //             logger.LogWarning(ex, "Failed to deserialize claim data from request body. Using default claim.");
-    //             claim = GetDefaultClaim();
-    //         }
-    //     }
-    //     else
-    //     {
-    //         logger.LogInformation("No valid claim data in POST body. Using default claim for testing.");
-    //         claim = GetDefaultClaim();
-    //     }
-
-    //     return claim;
-    // }
-
-    // private static Claim GetDefaultClaim()
-    // {
-    //     return new Claim
-    //     {
-    //         ClaimId = "12345",
-    //         PolicyNumber = "POLICY-67890",
-    //         ClaimantName = "John Doe",
-    //         ClaimantContact = "john.doe@example.com",
-    //         DateOfAccident = new DateTime(2023, 1, 1),
-    //         AccidentDescription = "Minor fender bender.",
-    //         VehicleMake = "Toyota",
-    //         VehicleModel = "Camry",
-    //         VehicleYear = 2020,
-    //         LicensePlate = "ABC123",
-    //         AmountClaimed = 1000.00m,
-    //         Status = ClaimStatus.Submitted
-    //     };
-    // }
-
     [Function(nameof(ClaimProcessingOrchestration))]
     public async Task ClaimProcessingOrchestration(
         [OrchestrationTrigger] TaskOrchestrationContext context)
     {
         var claim = context.GetInput<Claim>()
-            ?? throw new ArgumentNullException(nameof (context), "No claim data provided to orchestration.");
+            ?? throw new ArgumentNullException(nameof(context), "No claim data provided to orchestration.");
 
         ILogger logger = context.CreateReplaySafeLogger(nameof(ClaimProcessingOrchestration));
         logger.LogInformation("Starting claim processing orchestration.");
 
+        context.SetCustomStatus(new
+        {
+            step = "Starting claim processing",
+            message = $"Processing claim {claim.ClaimDetail.ClaimId}.",
+            progress = 0
+        });
+
+        context.SetCustomStatus(new
+        {
+            step = "Assessing claim completeness",
+            message = $"Checking if claim {claim.ClaimDetail.ClaimId} is complete.",
+            progress = 10
+        });
 
         // Step 1: Assess completeness of the claim
-        var isComplete = await context.CallActivityAsync<bool>(nameof(ClaimProcessActivities.IsClaimComplete), claim);
-        if (!isComplete)
+        var claimCompletionResult = await context.CallActivityAsync<ClaimCompletionResult>(nameof(ClaimProcessActivities.IsClaimComplete), claim);
+        if (!claimCompletionResult.IsComplete)
         {
             logger.LogInformation("Claim is incomplete. Orchestration will not proceed.");
+
+            // TODO: Handle incomplete claim scenario, e.g., notify claimant or log.
+            
             return;
         }
+
+        context.SetCustomStatus(new
+        {
+            step = "Retrieving claim history",
+            message = $"Getting history for claim {claim.ClaimDetail.ClaimId}.",
+            progress = 30
+        });
 
         // Step 2: Get history from MCP plugin via SK
-        var history = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.GetClaimHistory), claim.ClaimId);
-        logger.LogInformation("Claim history retrieved: {history}", history);
-        if (string.IsNullOrEmpty(history))
+        var customerID = claim.Customer.CustomerId;
+        var history = await context.CallActivityAsync<ClaimHistoryResult>(nameof(ClaimProcessActivities.GetClaimHistory), customerID);
+        logger.LogInformation("Claim history for customer {customerId} retrieved: {history}", customerID, history);
+
+        context.SetCustomStatus(new
         {
-            logger.LogWarning("No claim history found for claim ID {claimId}.", claim.ClaimId);
+            step = "Detecting fraud",
+            message = $"Analyzing claim {claim.ClaimDetail.ClaimId} for potential fraud.",
+            progress = 60
+        });
+
+        ClaimFraudRequest claimFraudRequest = new(Claim: claim, History: history);
+
+        // Step 3: Fraud detection using SK
+        var isFraudulent = await context.CallActivityAsync<ClaimFraudResult>(nameof(ClaimProcessActivities.IsClaimFraudulent), claimFraudRequest);
+        if (isFraudulent.IsFraudulent)
+        {
+            logger.LogWarning("Claim {claimId} is marked as fraudulent.", claim.ClaimDetail.ClaimId);
             return;
         }
 
-        // Step 3: Fraud detection using SK
-        var isFraudulent = await context.CallActivityAsync<bool>(nameof(ClaimProcessActivities.IsClaimFraudulent), new { claim, history });
-        if (isFraudulent)
+        context.SetCustomStatus(new
         {
-            logger.LogWarning("Claim {claimId} is marked as fraudulent.", claim.ClaimId);
-            return;
-        }
+            step = "Deciding next action",
+            message = $"Deciding next action for claim {claim.ClaimDetail.ClaimId}.",
+            progress = 70
+        });
 
         // Step 4: Decide the next step
         var decision = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.DecideAction), new { claim, isFraudulent });
@@ -106,15 +84,42 @@ public class AgentOrchestrator
         if (decision == "escalate")
         {
             await context.CallActivityAsync(nameof(ClaimProcessActivities.NotifyAdjuster), claim);
-            // await context.WaitForExternalEvent<bool>("AdjusterApproval");
+            await context.WaitForExternalEvent<bool>("AdjusterApproval");
         }
 
+        context.SetCustomStatus(new
+        {
+            step = "Generating claim summary",
+            message = $"Creating summary for claim {claim.ClaimDetail.ClaimId}.",
+            progress = 80
+        });
+
         // Step 5: Generate summary
-        var summary = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.GenerateClaimSummary), claim);
+        var summary = await context.CallActivityAsync<ClaimSummaryResult>(nameof(ClaimProcessActivities.GenerateClaimSummary), claim);
+
+        context.SetCustomStatus(new
+        {
+            step = "Notifying claimant",
+            message = $"Notifying claimant for claim {claim.ClaimDetail.ClaimId}.",
+            progress = 90
+        });
 
         // Step 6: Notify the claimant
-        var notificationResult = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.NotifyClaimant), new { Email = claim.ClaimantContact, Body = summary });
+        if (claim.Customer.ContactInfo != null)
+        {
+            string emailAddress = claim.Customer.ContactInfo;
+            NotificationRequest notificationRequest = new(claim.ClaimDetail.ClaimId, claim.Customer.ContactInfo, summary.SummaryHtml);
+            var notificationResult = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.NotifyClaimant), notificationRequest);
+        }
+
+        context.SetCustomStatus(new
+        {
+            step = "Complete",
+            message = $"Claim processing for {claim.ClaimDetail.ClaimId} is complete.",
+            progress = 100
+        });
+
 
         logger.LogInformation("Completed claim processing orchestration.");
-    }   
+    }
 }

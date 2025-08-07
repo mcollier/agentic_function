@@ -14,6 +14,12 @@ builder.Services.AddScoped<IClaimsService, ClaimsService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Add MCP support
+builder.Services.AddMcpServer()
+                .WithHttpTransport()
+                .WithStdioServerTransport()
+                .WithToolsFromAssembly();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -24,22 +30,6 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-string[] summaries = ["Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"];
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
 // Claims history endpoint
 app.MapGet("/customers/{customerId}/claims/history", async (string customerId, IClaimsService claimsService) =>
 {
@@ -49,6 +39,13 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
     }
 
     var claims = await claimsService.GetClaimsHistoryAsync(customerId);
+
+    // If no claims where found, return a 404 response.  Otherwise, return 200.
+    if (claims == null || !claims.Any())
+    {
+        return Results.NotFound();
+    }
+    
     return Results.Ok(claims);
 })
 .WithName("GetCustomerClaimsHistory")
@@ -59,9 +56,6 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
 
 app.MapDefaultEndpoints();
 
-app.Run();
+app.MapMcp();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+app.Run();

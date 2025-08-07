@@ -1,8 +1,0 @@
-# Get the weather
-GET https://localhost:7335/weatherforecast
-
-
-###
-
-# Get claim history
-GET https://localhost:7335/customers/123/claims/history
