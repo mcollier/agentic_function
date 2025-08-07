@@ -57,7 +57,7 @@ This repository is a hands-on demo and learning playground for experimenting wit
 1. Review the code in each project folder
 1. Follow comments and documentation in source files for usage examples
 1. (Optional) Provision Azure resources using Bicep in `infra/`
-1. Set up an **appsettings.Development.json** file in the `AgentFunctions.AppHost` project and include the following sections:
+1. Set up an **appsettings.Development.json** file in the `AgentFunction.AppHost` project and include the following sections:
    ```json
     {
     "Azure": {
