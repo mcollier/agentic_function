@@ -111,7 +111,8 @@ static async Task AddAgent(WebApplicationBuilder builder)
     // Enable planning
     OpenAIPromptExecutionSettings openAIPromptExecutionSettings = new()
     {
-        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+        ResponseFormat = "json_object"
     };
 
     // MCP tools
