@@ -31,6 +31,8 @@ public class AgentOrchestrator
             progress = 10
         });
 
+        claim.ClaimDetail.Status = ClaimStatus.UnderReview;
+
         // Step 1: Assess completeness of the claim
         var claimCompletionResult = await context.CallActivityAsync<ClaimCompletionResult>(nameof(ClaimProcessActivities.IsClaimComplete), claim);
         if (!claimCompletionResult.IsComplete)
@@ -67,6 +69,8 @@ public class AgentOrchestrator
         var isFraudulent = await context.CallActivityAsync<ClaimFraudResult>(nameof(ClaimProcessActivities.IsClaimFraudulent), claimFraudRequest);
         if (isFraudulent.IsFraudulent)
         {
+            claim.ClaimDetail.Status = ClaimStatus.Rejected;
+
             logger.LogWarning("Claim {claimId} is marked as fraudulent.", claim.ClaimDetail.ClaimId);
             return;
         }
@@ -94,6 +98,9 @@ public class AgentOrchestrator
             progress = 80
         });
 
+        // If the claim is not fraudulent and no escalation is needed, approve the claim.
+        claim.ClaimDetail.Status = ClaimStatus.Approved;
+
         // Step 5: Generate summary
         var summary = await context.CallActivityAsync<ClaimSummaryResult>(nameof(ClaimProcessActivities.GenerateClaimSummary), claim);
 
@@ -104,6 +111,7 @@ public class AgentOrchestrator
             progress = 90
         });
 
+
         // Step 6: Notify the claimant
         if (claim.Customer.ContactInfo != null)
         {
@@ -111,7 +119,7 @@ public class AgentOrchestrator
             NotificationRequest notificationRequest = new(claim.ClaimDetail.ClaimId, claim.Customer.ContactInfo, summary.SummaryHtml);
             var notificationResult = await context.CallActivityAsync<string>(nameof(ClaimProcessActivities.NotifyClaimant), notificationRequest);
         }
-
+        
         context.SetCustomStatus(new
         {
             step = "Complete",
