@@ -39,7 +39,7 @@ public class AgentCompletionsController(ChatCompletionAgent agent, ILogger<Agent
             }
 
             var usage = chatMessageContent?.Metadata?["Usage"] as OpenAI.Chat.ChatTokenUsage;
-            ShowUsageDetails(usage);            
+            ShowUsageDetails(usage);
 
             logger.LogInformation("Agent Response: {Response}", chatMessageContent?.Content);
 
