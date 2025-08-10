@@ -28,7 +28,7 @@ public class ClaimsProcessingPlugin()
 
         if (claim is null)
         {
-            return new ClaimCompletenessResult (IsComplete: false, MissingFields: ["Claim"]);
+            return new ClaimCompletenessResult(IsComplete: false, MissingFields: ["Claim"]);
         }
 
         try
@@ -70,7 +70,7 @@ public class ClaimsProcessingPlugin()
 
             bool isComplete = missingFields.Count == 0;
 
-            var result = new ClaimCompletenessResult (IsComplete: isComplete, MissingFields: missingFields);
+            var result = new ClaimCompletenessResult(IsComplete: isComplete, MissingFields: missingFields);
 
             Console.WriteLine($"Claim completeness check: {JsonSerializer.Serialize(result)}");
             return result;
