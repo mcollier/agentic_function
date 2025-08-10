@@ -1,4 +1,5 @@
 using AgentFunction.Models;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -98,7 +99,7 @@ public class AgentOrchestrator
             progress = 80
         });
 
-        // If the claim is not fraudulent and no escalation is needed, approve the claim.
+        // If the claim is not fraudulent, approve the claim.
         claim.ClaimDetail.Status = ClaimStatus.Approved;
 
         // Step 5: Generate summary

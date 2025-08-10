@@ -1,6 +1,3 @@
-using System.ComponentModel;
-using Microsoft.Extensions.Hosting;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Get parameters to use in other resources.
@@ -27,7 +24,7 @@ var blobs = storage.AddBlobs(Shared.Services.AzureStorageBlobs);
 var queues = storage.AddQueues(Shared.Services.AzureStorageQueues);
 var tables = storage.AddTables(Shared.Services.AzureStorageTables);
 
-// TODO: Update to use Azure Durable Task Service resource in Azure
+// TODO: Update to use Azure Durable Task Scheduler resource in Azure
 //       Using DTS emulator only for local development.
 var dts = builder.AddContainer("dts", "mcr.microsoft.com/dts/dts-emulator:latest")
                      .WithLifetime(ContainerLifetime.Persistent)

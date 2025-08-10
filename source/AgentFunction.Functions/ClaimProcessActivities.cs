@@ -1,8 +1,11 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+
 using AgentFunction.Models;
+
 using Azure.Communication.Email;
 using Azure.Storage.Queues;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;

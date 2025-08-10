@@ -1,10 +1,14 @@
 using System.ClientModel.Primitives;
+
 using AgentFunction.ClaimsAgent.Plugins;
+
 using Azure.Identity;
+
 using Microsoft.Extensions.Azure;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+
 using ModelContextProtocol.Client;
 
 var builder = WebApplication.CreateBuilder(args);
