@@ -8,7 +8,7 @@ namespace AgentFunction.ApiService.Tools;
 [McpServerToolType]
 public class ClaimHistoryTools(IClaimsService claimsService)
 {
-    [McpServerTool(Name = "GetClaimsHistory"), Description("Retrieves the claims history for a specific customer.")]
+    [McpServerTool(Name = "get_claims_history"), Description("Retrieves the claims history for a specific customer.")]
     public async Task<IEnumerable<ClaimDetail>> GetClaimsHistoryAsync(string customerId)
     {
         if (string.IsNullOrWhiteSpace(customerId))

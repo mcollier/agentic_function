@@ -88,7 +88,7 @@ static void AddAIServices(WebApplicationBuilder builder)
                 options.RetryPolicy = new ClientRetryPolicy(maxRetries: 3);
             });
         });
-    // The deployment name for Azure OpenAI is read from configuration or environment variable "AZURE_OPENAI_DEPLOYMENT_NAME".
+
     var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME") 
                         ?? throw new InvalidOperationException("AZURE_OPENAI_DEPLOYMENT_NAME environment variable is not set.");
 
