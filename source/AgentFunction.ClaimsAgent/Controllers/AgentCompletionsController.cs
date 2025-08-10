@@ -10,7 +10,7 @@ namespace AgentFunction.ClaimsAgent.Controllers;
 public class AgentCompletionsController(ChatCompletionAgent agent, ILogger<AgentCompletionsController> logger) : ControllerBase
 {
     private readonly ChatCompletionAgent _agent = agent;
-    private readonly ILogger<AgentCompletionsController> _logger = logger;
+    // private readonly ILogger<AgentCompletionsController> _logger = logger;
 
     [HttpPost]
     public async Task<IActionResult> CompleteAsync([FromBody] AgentCompletionRequest request, CancellationToken cancellationToken)
@@ -18,7 +18,7 @@ public class AgentCompletionsController(ChatCompletionAgent agent, ILogger<Agent
         // Validate input: prompt must not be null or empty for a meaningful completion
         if (request is null || string.IsNullOrWhiteSpace(request.Prompt))
         {
-            _logger.LogWarning("Received invalid completion request: prompt is missing.");
+            logger.LogWarning("Received invalid completion request: prompt is missing.");
             return BadRequest("Prompt must be provided.");
         }
 
@@ -26,34 +26,34 @@ public class AgentCompletionsController(ChatCompletionAgent agent, ILogger<Agent
         {
             var prompt = request.Prompt;
 
-            AgentResponseItem<ChatMessageContent>? responseItem = null;
+            // Invoke the agent with the provided prompt.
             IAsyncEnumerable<AgentResponseItem<ChatMessageContent>> content =
                 _agent.InvokeAsync(new ChatMessageContent(AuthorRole.User, prompt), cancellationToken: cancellationToken);
 
+            // Process the agent's response. Only concerned with the first item.
             ChatMessageContent? chatMessageContent = null;
-            await foreach (ChatMessageContent item in content.ConfigureAwait(false))
+            await foreach (AgentResponseItem<ChatMessageContent> item in content.ConfigureAwait(false))
             {
-                chatMessageContent = item;
+                chatMessageContent = item.Message;
                 break;
             }
 
-            // var usage = responseItem?.Message?.Metadata?["Usage"] as UsageDetails;
             var usage = chatMessageContent?.Metadata?["Usage"] as OpenAI.Chat.ChatTokenUsage;
-            
+            ShowUsageDetails(usage);            
 
-            _logger.LogInformation("Agent Response: {Response}", responseItem?.Message?.Content);
+            logger.LogInformation("Agent Response: {Response}", chatMessageContent?.Content);
 
             return Ok(chatMessageContent);
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Completion request was canceled.");
+            logger.LogWarning("Completion request was canceled.");
             return StatusCode(StatusCodes.Status499ClientClosedRequest, "Request was canceled.");
         }
         catch (Exception ex)
         {
             // Log the exception for diagnostics, but do not leak details to the client
-            _logger.LogError(ex, "Error occurred while processing agent completion.");
+            logger.LogError(ex, "Error occurred while processing agent completion.");
             return Problem(
                 detail: "An unexpected error occurred while processing your request.",
                 statusCode: StatusCodes.Status500InternalServerError,
@@ -70,18 +70,10 @@ public class AgentCompletionsController(ChatCompletionAgent agent, ILogger<Agent
     {
         if (usage is not null)
         {
-            _logger.LogInformation("Input tokens: {InputTokenCount}, Output tokens: {OutputTokenCount}, Total tokens: {TotalTokenCount}",
+            logger.LogInformation("Input tokens: {InputTokenCount}, Output tokens: {OutputTokenCount}, Total tokens: {TotalTokenCount}",
                 usage.InputTokenCount,
                 usage.OutputTokenCount,
                 usage.TotalTokenCount);
-
-            // if (usage.AdditionalCounts is not null && usage.AdditionalCounts.Count > 0)
-            // {
-            //     foreach (var kvp in usage.AdditionalCounts)
-            //     {
-            //         _logger.LogInformation("Additional count - {Key}: {Value}", kvp.Key, kvp.Value);
-            //     }
-            // }
         }
     }
 }

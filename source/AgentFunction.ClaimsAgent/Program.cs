@@ -38,6 +38,7 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddKernel();
 
+
 // Set up Semantic Kernel logging.
 // Enable model diagnostics with sensitive data.
 AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnosticsSensitive", true);
@@ -77,20 +78,22 @@ static void AddAIServices(WebApplicationBuilder builder)
 {
     builder.AddAzureOpenAIClient(
         connectionName: Shared.Services.AzureOpenAI,
-        configureSettings: (settings) => settings.Credential = new DefaultAzureCredential(),
-        // configureSettings: (settings) => settings.Credential = builder.Environment.IsProduction()
-        //             ? new DefaultAzureCredential()
-        //             : new AzureCliCredential(),
+        configureSettings: (clientSettings) => clientSettings.Credential = new DefaultAzureCredential(),
+       
         configureClientBuilder: clientBuilder =>
         {
             clientBuilder.ConfigureOptions((options) =>
             {
+                // Set maxRetries to 3 to balance resilience against transient failures and avoid excessive delays.
                 options.RetryPolicy = new ClientRetryPolicy(maxRetries: 3);
             });
         });
+    // The deployment name for Azure OpenAI is read from configuration or environment variable "AZURE_OPENAI_DEPLOYMENT_NAME".
+    var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME") 
+                        ?? throw new InvalidOperationException("AZURE_OPENAI_DEPLOYMENT_NAME environment variable is not set.");
 
     builder.Services.AddAzureOpenAIChatCompletion(
-        deploymentName: "gpt-4o-mini");
+        deploymentName: deploymentName);
 }
 
 static async Task AddAgent(WebApplicationBuilder builder)
