@@ -1,4 +1,3 @@
-
 using AgentFunction.Models;
 
 namespace AgentFunction.ApiService.Services;

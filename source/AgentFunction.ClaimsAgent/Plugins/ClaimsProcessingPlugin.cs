@@ -1,48 +1,86 @@
 using System.ComponentModel;
 using System.Text.Json;
+
 using AgentFunction.Models;
 
 using Microsoft.SemanticKernel;
 
 namespace AgentFunction.ClaimsAgent.Plugins;
 
-public class ClaimsProcessingPlugin
+public class ClaimsProcessingPlugin()
 {
     [KernelFunction("is_claim_complete")]
     [Description("""
                  Validates if the claim is complete based on the provided claim data and returns
-                 true if the claim contains the required data, or false if the claim is incomplete.
+                 a JSON object with IsComplete (true/false) and a list of MissingFields.
+                 Example:
+                 {
+                     "IsComplete": false,
+                     "MissingFields": ["ClaimDetail.ClaimId", "Customer.Name"]
+                 }
                  """
                 )]
-    public bool IsClaimComplete(string claim)
+    public ClaimCompletenessResult IsClaimComplete(string claim)
     {
         Console.WriteLine($"IsClaimComplete called with claim: {claim}");
 
-        // Assume claim is a JSON string; check for required fields
+        var missingFields = new List<string>();
+
         if (claim is null)
         {
-            return false;
+            return new ClaimCompletenessResult(IsComplete: false, MissingFields: ["Claim"]);
         }
 
         try
         {
             var claimData = JsonSerializer.Deserialize<Claim>(claim);
 
-            bool isComplete = claimData is not null &&
-                              !string.IsNullOrWhiteSpace(claimData.ClaimDetail.ClaimId) &&
-                              !string.IsNullOrWhiteSpace(claimData.Customer.Name) &&
-                              !string.IsNullOrWhiteSpace(claimData.ClaimDetail.PolicyNumber) &&
-                              claimData.ClaimDetail.AmountClaimed > 0 &&
-                              claimData.ClaimDetail.DateOfAccident != default;
+            if (claimData is null)
+            {
+                missingFields.Add("Claim");
+            }
+            else
+            {
+                if (claimData.ClaimDetail is null)
+                {
+                    missingFields.Add("ClaimDetail");
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(claimData.ClaimDetail.ClaimId))
+                        missingFields.Add("ClaimDetail.ClaimId");
+                    if (string.IsNullOrWhiteSpace(claimData.ClaimDetail.PolicyNumber))
+                        missingFields.Add("ClaimDetail.PolicyNumber");
+                    if (claimData.ClaimDetail.AmountClaimed <= 0)
+                        missingFields.Add("ClaimDetail.AmountClaimed");
+                    if (claimData.ClaimDetail.DateOfAccident == default)
+                        missingFields.Add("ClaimDetail.DateOfAccident");
+                }
 
-            Console.WriteLine($"Claim completeness check for {claimData?.ClaimDetail.ClaimId}: {isComplete}");
-            return isComplete;
+                if (claimData.Customer is null)
+                {
+                    missingFields.Add("Customer");
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(claimData.Customer.Name))
+                        missingFields.Add("Customer.Name");
+                }
+            }
+
+            bool isComplete = missingFields.Count == 0;
+
+            var result = new ClaimCompletenessResult(IsComplete: isComplete, MissingFields: missingFields);
+
+            Console.WriteLine($"Claim completeness check: {JsonSerializer.Serialize(result)}");
+            return result;
         }
         catch (JsonException ex)
         {
-            // Invalid JSON
             Console.WriteLine($"JSON deserialization error: {ex.Message}");
-            return false;
+            return new ClaimCompletenessResult(IsComplete: false,
+                MissingFields: ["Invalid JSON"]
+            );
         }
     }
 
@@ -97,5 +135,7 @@ public class ClaimsProcessingPlugin
         }
     }
 }
+
+public record ClaimCompletenessResult(bool IsComplete, List<string> MissingFields);
 
 public record FraudDetectionResult(bool IsFraudulent, string Reason);

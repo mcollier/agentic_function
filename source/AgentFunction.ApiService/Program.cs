@@ -51,7 +51,7 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
 .WithName("GetCustomerClaimsHistory")
 .WithSummary("Get customer claims history")
 .WithDescription("Returns the historical insurance claims for a specific customer")
-.Produces(200, typeof(IEnumerable<Claim>))
+.Produces<IEnumerable<Claim>>(200)
 .Produces(400);
 
 app.MapDefaultEndpoints();

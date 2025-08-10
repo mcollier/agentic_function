@@ -54,9 +54,29 @@ This repository is a hands-on demo and learning playground for experimenting wit
 > **Note:** This is a learning project. Setup and deployment steps may change frequently.
 
 1. Clone the repository
-2. Review the code in each project folder
-3. Follow comments and documentation in source files for usage examples
-4. (Optional) Provision Azure resources using Bicep in `infra/`
+1. Review the code in each project folder
+1. Follow comments and documentation in source files for usage examples
+1. (Optional) Provision Azure resources using Bicep in `infra/`
+1. Set up an **appsettings.Development.json** file in the `AgentFunction.AppHost` project and include the following sections:
+   ```json
+    {
+    "Azure": {
+        "SubscriptionId": "YOUR-AZURE-SUBSCRIPTION-ID",
+        "ResourceGroup": "YOUR-AZURE-RESOURCE-GROUP-NAME",
+        "Location": "eastus",
+        "AllowResourceGroupCreation": true
+    },
+    "Parameters": {
+        "existingAzureOpenAIName": "YOUR-AZURE-OPEN-AI-RESOURCE",
+        "existingAzureOpenAIResourceGroup": "YOUR-AZURE-RESOURCE-GROUP-NAME",
+        "azureCommunicationServiceConnectionString": "YOUR-AZURE-COMMUNICATION-SERVICE-CONNECTION-STRING",
+        "senderEmailAddress": "YOUR-AZURE-COMMUNICATION-SERVICE-SENDER-DO-NOT-REPLY-ADDRESS",
+        "recipientEmailAddress": "EMAIL-ADDRESS-TO-SEND-ALL-NOTIFICATIONS",
+        "azureDurableTaskSchedulerConnectionString": "Endpoint=http://localhost:8080;Authentication=None",
+        "azureDurableTaskSchedulerTaskHubName": "default"
+    }
+   }
+   ```
 
 ---
 

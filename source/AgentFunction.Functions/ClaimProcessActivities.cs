@@ -1,8 +1,11 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+
 using AgentFunction.Models;
+
 using Azure.Communication.Email;
 using Azure.Storage.Queues;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -157,6 +160,8 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
                      $"Claim ID: {claim.ClaimDetail.ClaimId}\n" +
                      $"Accident Description: {claim.ClaimDetail.AccidentDescription}\n" +
                      $"Claim Amount: {claim.ClaimDetail.AmountClaimed}\n" +
+                     $"Claim Status: {claim.ClaimDetail.Status}\n" +
+                     $"Note - a Claim Status of {ClaimStatus.Approved} indicates that the claim is approved, while a status of {ClaimStatus.UnderReview} indicates it is under review.\n" +
                      $"Return a JSON object with the following structure:\n" +
                      $"{{\n" +
                      $"  \"ClaimId\": \"{claim.ClaimDetail.ClaimId}\",\n" +

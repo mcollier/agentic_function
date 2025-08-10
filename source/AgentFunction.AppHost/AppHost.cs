@@ -1,13 +1,10 @@
-using System.ComponentModel;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Get parameters to use in other resources.
 // These parameters can be used to configure the application or pass values to services.
-var existingAzureAiFoundryName = builder.AddParameter("existingAzureAiFoundryName");
-var existingAzureAiFoundryResourceGroup = builder.AddParameter("existingAzureAiFoundryResourceGroup");
 var existingAzureOpenAIResourceGroup = builder.AddParameter("existingAzureOpenAIResourceGroup");
 var existingAzureOpenAIName = builder.AddParameter("existingAzureOpenAIName");
+var existingAzureOpenAIModelName = builder.AddParameter("existingAzureOpenAIModelName");
 var azureCommunicationServiceConnectionString = builder.AddParameter("azureCommunicationServiceConnectionString");
 var azureDurableTaskSchedulerConnectionString = builder.AddParameter("azureDurableTaskSchedulerConnectionString");
 var azureDurableTaskSchedulerTaskHubName = builder.AddParameter("azureDurableTaskSchedulerTaskHubName");
@@ -30,10 +27,9 @@ var tables = storage.AddTables(Shared.Services.AzureStorageTables);
 // TODO: Update to use Azure Durable Task Scheduler resource in Azure
 //       Using DTS emulator only for local development.
 var dts = builder.AddContainer("dts", "mcr.microsoft.com/dts/dts-emulator:latest")
-                 .WithLifetime(ContainerLifetime.Persistent)
-                 .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "dts-grpc")
-                 .WithHttpEndpoint(port: 8082, targetPort: 8082, name: "dts-dashboard");
-
+                     .WithLifetime(ContainerLifetime.Persistent)
+                     .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "dts-grpc")
+                     .WithHttpEndpoint(port: 8082, targetPort: 8082, name: "dts-dashboard");
 
 var azureOpenAi = builder.AddAzureOpenAI(Shared.Services.AzureOpenAI)
                          .AsExisting(existingAzureOpenAIName, existingAzureOpenAIResourceGroup);
@@ -43,6 +39,7 @@ var apiService = builder.AddProject<Projects.ApiService>(Shared.Services.ApiServ
 
 var claimsAgent = builder.AddProject<Projects.ClaimsAgentService>(Shared.Services.ClaimsAgentService)
     .WithEnvironment("MCP_SERVER_URL", apiService.GetEndpoint("http"))
+    .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", existingAzureOpenAIModelName)
     .WithHttpHealthCheck("/health")
     .WithReference(azureOpenAi);
 
