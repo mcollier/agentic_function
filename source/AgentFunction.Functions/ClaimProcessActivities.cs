@@ -161,7 +161,7 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
                      $"Accident Description: {claim.ClaimDetail.AccidentDescription}\n" +
                      $"Claim Amount: {claim.ClaimDetail.AmountClaimed}\n" +
                      $"Claim Status: {claim.ClaimDetail.Status}\n" +
-                     $"Note - a Claim Status of 2 indicates that the claim is approved, while a status of 1 indicates it is under review.\n" +
+                     $"Note - a Claim Status of {ClaimStatus.Approved} indicates that the claim is approved, while a status of {ClaimStatus.UnderReview} indicates it is under review.\n" +
                      $"Return a JSON object with the following structure:\n" +
                      $"{{\n" +
                      $"  \"ClaimId\": \"{claim.ClaimDetail.ClaimId}\",\n" +
