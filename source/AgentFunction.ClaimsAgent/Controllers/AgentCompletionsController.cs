@@ -10,7 +10,6 @@ namespace AgentFunction.ClaimsAgent.Controllers;
 public class AgentCompletionsController(ChatCompletionAgent agent, ILogger<AgentCompletionsController> logger) : ControllerBase
 {
     private readonly ChatCompletionAgent _agent = agent;
-    // private readonly ILogger<AgentCompletionsController> _logger = logger;
 
     [HttpPost]
     public async Task<IActionResult> CompleteAsync([FromBody] AgentCompletionRequest request, CancellationToken cancellationToken)
