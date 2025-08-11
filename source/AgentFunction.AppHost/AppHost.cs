@@ -5,7 +5,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 var existingAzureOpenAIResourceGroup = builder.AddParameter("existingAzureOpenAIResourceGroup");
 var existingAzureOpenAIName = builder.AddParameter("existingAzureOpenAIName");
 var existingAzureOpenAIModelName = builder.AddParameter("existingAzureOpenAIModelName");
-var azureCommunicationServiceConnectionString = builder.AddParameter("azureCommunicationServiceConnectionString");
 var azureDurableTaskSchedulerConnectionString = builder.AddParameter("azureDurableTaskSchedulerConnectionString");
 var azureDurableTaskSchedulerTaskHubName = builder.AddParameter("azureDurableTaskSchedulerTaskHubName");
 var senderEmailAddress = builder.AddParameter("senderEmailAddress");
@@ -34,6 +33,9 @@ var dts = builder.AddContainer("dts", "mcr.microsoft.com/dts/dts-emulator:latest
 var azureOpenAi = builder.AddAzureOpenAI(Shared.Services.AzureOpenAI)
                          .AsExisting(existingAzureOpenAIName, existingAzureOpenAIResourceGroup);
 
+// Existing Azure Communication Service connection string
+var azureCommunicationService = builder.AddConnectionString("AzureCommunicationServiceConnectionString");
+
 var apiService = builder.AddProject<Projects.ApiService>(Shared.Services.ApiService)
     .WithHttpHealthCheck("/health");
 
@@ -48,13 +50,13 @@ var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shar
 .WithReference(claimsAgent)
 .WithReference(apiService)
 .WithReference(queues)
+.WithReference(azureCommunicationService)
 .WaitFor(storage)
 .WaitFor(claimsAgent)
 .WaitFor(apiService)
 .WaitFor(dts)
 .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", azureDurableTaskSchedulerConnectionString)
 .WithEnvironment("TASKHUB_NAME", azureDurableTaskSchedulerTaskHubName)
-.WithEnvironment("COMMUNICATION_SERVICES_CONNECTION_STRING", azureCommunicationServiceConnectionString)
 .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
 .WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
 .WithExternalHttpEndpoints();

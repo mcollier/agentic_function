@@ -14,7 +14,7 @@ using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AgentFunction.Functions;
 
-public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueServiceClient queueServiceClient)
+public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueServiceClient queueServiceClient, EmailClient emailClient)
 {
     [Function(nameof(IsClaimComplete))]
     public async Task<ClaimCompletionResult> IsClaimComplete(
@@ -194,15 +194,12 @@ public class ClaimProcessActivities(IHttpClientFactory httpClientFactory, QueueS
         ILogger logger = executionContext.GetLogger(nameof(NotifyClaimant));
         logger.LogInformation("Notifying claimant with input: {input}.", notificationRequest);
 
-        string connectionString = Environment.GetEnvironmentVariable("COMMUNICATION_SERVICES_CONNECTION_STRING")
-            ?? throw new InvalidOperationException("Azure Communication Service connection string is not set.");
         string senderEmailAddress = Environment.GetEnvironmentVariable("SENDER_EMAIL_ADDRESS")
             ?? throw new InvalidOperationException("Sender email address is not set.");
 
         string recipientEmailAddress = Environment.GetEnvironmentVariable("RECIPIENT_EMAIL_ADDRESS")
             ?? throw new InvalidOperationException("Recipient email address is not set.");
 
-        var emailClient = new EmailClient(connectionString);
         var sender = senderEmailAddress;
         var recipient = recipientEmailAddress; //notificationRequest.EmailAddress;
         var subject = "Claim Notification";
