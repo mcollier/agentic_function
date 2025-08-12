@@ -4,5 +4,11 @@
     "azureFunctions.projectRuntime": "~4",
     "debug.internalConsoleOptions": "neverOpen",
     "azureFunctions.projectSubpath": "source/AgentFunction.Functions",
-    "azureFunctions.preDeployTask": "publish (functions)"
+    "azureFunctions.preDeployTask": "publish (functions)",
+    "csharpOrganizeUsings.sortOrder": "System",
+    "[csharp]": {
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always",    
+        }
+    }
 }

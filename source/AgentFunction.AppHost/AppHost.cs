@@ -5,7 +5,6 @@ var builder = DistributedApplication.CreateBuilder(args);
 var existingAzureOpenAIResourceGroup = builder.AddParameter("existingAzureOpenAIResourceGroup");
 var existingAzureOpenAIName = builder.AddParameter("existingAzureOpenAIName");
 var existingAzureOpenAIModelName = builder.AddParameter("existingAzureOpenAIModelName");
-var azureCommunicationServiceConnectionString = builder.AddParameter("azureCommunicationServiceConnectionString");
 var azureDurableTaskSchedulerConnectionString = builder.AddParameter("azureDurableTaskSchedulerConnectionString");
 var azureDurableTaskSchedulerTaskHubName = builder.AddParameter("azureDurableTaskSchedulerTaskHubName");
 var senderEmailAddress = builder.AddParameter("senderEmailAddress");
@@ -24,15 +23,11 @@ var blobs = storage.AddBlobs(Shared.Services.AzureStorageBlobs);
 var queues = storage.AddQueues(Shared.Services.AzureStorageQueues);
 var tables = storage.AddTables(Shared.Services.AzureStorageTables);
 
-// TODO: Update to use Azure Durable Task Scheduler resource in Azure
-//       Using DTS emulator only for local development.
-var dts = builder.AddContainer("dts", "mcr.microsoft.com/dts/dts-emulator:latest")
-                     .WithLifetime(ContainerLifetime.Persistent)
-                     .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "dts-grpc")
-                     .WithHttpEndpoint(port: 8082, targetPort: 8082, name: "dts-dashboard");
-
 var azureOpenAi = builder.AddAzureOpenAI(Shared.Services.AzureOpenAI)
                          .AsExisting(existingAzureOpenAIName, existingAzureOpenAIResourceGroup);
+
+// Existing Azure Communication Service connection string
+var azureCommunicationService = builder.AddConnectionString("AzureCommunicationServiceConnectionString");
 
 var apiService = builder.AddProject<Projects.ApiService>(Shared.Services.ApiService)
     .WithHttpHealthCheck("/health");
@@ -48,15 +43,26 @@ var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shar
 .WithReference(claimsAgent)
 .WithReference(apiService)
 .WithReference(queues)
+.WithReference(azureCommunicationService)
 .WaitFor(storage)
 .WaitFor(claimsAgent)
 .WaitFor(apiService)
-.WaitFor(dts)
 .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", azureDurableTaskSchedulerConnectionString)
 .WithEnvironment("TASKHUB_NAME", azureDurableTaskSchedulerTaskHubName)
-.WithEnvironment("COMMUNICATION_SERVICES_CONNECTION_STRING", azureCommunicationServiceConnectionString)
 .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
 .WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
 .WithExternalHttpEndpoints();
+
+// Only use the Durable Task Scheduler in run mode.
+// In local development, we use the DTS emulator.
+if (builder.ExecutionContext.IsRunMode)
+{
+    var dts = builder.AddContainer("dts", "mcr.microsoft.com/dts/dts-emulator:latest")
+                    .WithLifetime(ContainerLifetime.Persistent)
+                    .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "dts-grpc")
+                    .WithHttpEndpoint(port: 8082, targetPort: 8082, name: "dts-dashboard");
+
+    functions.WaitFor(dts);
+}
 
 builder.Build().Run();
