@@ -53,7 +53,8 @@
                 "github.vscode-pull-request-github@prerelease",
                 "ms-dotnettools.csdevkit",
                 "ms-vscode.vscode-node-azure-pack",
-                "yzhang.markdown-all-in-one"
+                "yzhang.markdown-all-in-one",
+                "jeremycaron.csharp-organize-usings"
             ]
         }
     },
