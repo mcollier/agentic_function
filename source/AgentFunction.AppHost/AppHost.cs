@@ -8,7 +8,6 @@ var existingAzureOpenAIModelName = builder.AddParameter("existingAzureOpenAIMode
 var azureDurableTaskSchedulerConnectionString = builder.AddParameter("azureDurableTaskSchedulerConnectionString");
 var azureDurableTaskSchedulerTaskHubName = builder.AddParameter("azureDurableTaskSchedulerTaskHubName");
 var senderEmailAddress = builder.AddParameter("senderEmailAddress");
-
 var recipientEmailAddress = builder.AddParameter("recipientEmailAddress");
 
 var storage = builder.AddAzureStorage(Shared.Services.AzureStorage)

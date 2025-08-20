@@ -1,9 +1,12 @@
+using AgentFunction.Functions;
+
 using Azure.Communication.Email;
 
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.SemanticKernel;
 
 using Shared;
 
@@ -30,5 +33,26 @@ builder.Services.AddSingleton(sp =>
     }
     return new EmailClient(acsConnString);
 });
+
+// Load AgentSettings from configuration
+builder.Services.AddOptions<AgentSettings>().BindConfiguration("Agents");
+
+builder.Services.AddSingleton<Kernel>(sp =>
+{
+    var kernel = Kernel.CreateBuilder();
+
+    string aoaiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new InvalidOperationException("Azure OpenAI endpoint is not configured.");
+
+    kernel.AddAzureOpenAIChatCompletion(
+        deploymentName: "dummy-deployment",
+        endpoint: aoaiEndpoint,
+        credentials: null);
+
+    // TODO: Add plugins here
+
+    return kernel.Build();
+});
+
+// builder.Services.AddSingleton<CompletenessAgent>();
 
 builder.Build().Run();
