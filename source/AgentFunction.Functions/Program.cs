@@ -1,6 +1,5 @@
-using AgentFunction.Functions;
-
 using Azure.Communication.Email;
+using Azure.Identity;
 
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Configuration;
@@ -35,24 +34,26 @@ builder.Services.AddSingleton(sp =>
 });
 
 // Load AgentSettings from configuration
-builder.Services.AddOptions<AgentSettings>().BindConfiguration("Agents");
+// builder.Services.AddOptions<AgentSettings>().BindConfiguration("Agents");
 
 builder.Services.AddSingleton<Kernel>(sp =>
 {
     var kernel = Kernel.CreateBuilder();
 
-    string aoaiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new InvalidOperationException("Azure OpenAI endpoint is not configured.");
+    // string aoaiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new InvalidOperationException("Azure OpenAI endpoint is not configured.");
 
     kernel.AddAzureOpenAIChatCompletion(
-        deploymentName: "dummy-deployment",
-        endpoint: aoaiEndpoint,
-        credentials: null);
+        deploymentName: "gpt-4o-mini",
+        // deploymentName: "dummy-deployment",
+        endpoint: "https://oai-agenticfunction.openai.azure.com/",
+        credentials: new DefaultAzureCredential());
 
     // TODO: Add plugins here
+    kernel.Plugins.AddFromType<Shared.Agents.Tools.SchemaTools>("SchemaTools");
 
     return kernel.Build();
 });
 
-// builder.Services.AddSingleton<CompletenessAgent>();
+builder.Services.AddSingleton<CompletenessAgent>();
 
 builder.Build().Run();

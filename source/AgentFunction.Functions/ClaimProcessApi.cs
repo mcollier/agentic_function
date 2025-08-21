@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 
 using AgentFunction.Models;
 
@@ -7,10 +8,54 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 
+using Shared.Models;
+
 namespace AgentFunction.Functions;
+
+public class RunCompleteness(CompletenessAgent completenessAgent)
+{
+    private readonly CompletenessAgent _completenessAgent = completenessAgent;
+
+    [Function(nameof(RunCompletnessAssessment))]
+    public async Task<CompletenessResult> RunCompletnessAssessment(
+        [ActivityTrigger] FnolClaim claim,
+        FunctionContext context)
+    {
+        ILogger logger = context.GetLogger(nameof(RunCompletnessAssessment));
+
+        return await _completenessAgent.ExecuteAsync(claim);
+    }
+}
 
 public class ClaimProcessApi
 {
+    [Function(nameof(StartClaim))]
+    public async Task<HttpResponseData> StartClaim(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req,
+        [DurableClient] DurableTaskClient client,
+        FunctionContext executionContext
+    )
+    {
+        ILogger logger = executionContext.GetLogger(nameof(StartClaim));
+        logger.LogInformation("Received request to start claim processing.");
+
+        FnolClaim? fnolClaim = await JsonSerializer.DeserializeAsync<FnolClaim>(
+            req.Body,
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+        var instanceId =
+            await client.ScheduleNewOrchestrationInstanceAsync(nameof(ClaimOrchestrator.RunClaimOrchestration), fnolClaim);
+        logger.LogInformation("Started orchestration with ID: {instanceId}", instanceId);
+
+        return await client.CreateCheckStatusResponseAsync(req, instanceId);
+    }
+
+    
+
+
     [Function(nameof(StartClaimProcess))]
     public async Task<HttpResponseData> StartClaimProcess(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req,
