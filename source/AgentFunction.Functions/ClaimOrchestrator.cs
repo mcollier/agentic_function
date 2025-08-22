@@ -1,10 +1,10 @@
-using AgentFunction.Functions;
-
+using AgentFunction.Functions.Activities;
+using AgentFunction.Functions.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 
-using Shared.Models;
+namespace AgentFunction.Functions;
 
 public static class ClaimOrchestrator
 {
@@ -19,14 +19,36 @@ public static class ClaimOrchestrator
             ?? throw new ArgumentNullException(nameof(context), "No claim data provided to orchestration.");
 
         // 1 - Completeness check over Raw FNOL
-        var completenessResult = await context.CallActivityAsync<CompletenessResult>(nameof(RunCompleteness.RunCompletnessAssessment), fnolClaim);
+        var completenessResult = await context.CallActivityAsync<CompletenessResult>(nameof(CompletenessActivity.RunCompletnessAssessment), fnolClaim);
+
+        if (completenessResult.MissingFields.Length == 0)
+        {
+            logger.LogInformation("FNOL claim is complete. Proceeding with processing.");
+        }
+        else
+        {
+            logger.LogWarning("FNOL claim is incomplete. Missing fields: {MissingFields}", string.Join(", ", completenessResult.MissingFields));
+            // Handle incomplete claim logic here, e.g., notify user or halt processing
+            return new ClaimAnalysisReport
+            {
+                ClaimId = fnolClaim.ClaimId ?? "unknown",
+                Raw = fnolClaim,
+                Completeness = completenessResult,
+                Canonical = null, // No canonicalization if incomplete
+                Coverage = null,
+                Fraud = null,
+                Timeline = null
+            };
+        }
+        // 2) Canonicalize RAW → Canonical
+        var canonical = await context.CallActivityAsync<CanonicalClaim>(nameof(CanonicalizeActivity.RunCanonicalize), fnolClaim);
 
         // 3) Fan-out on CANONICAL
-        //     var coverageTask = ctx.CallActivityAsync<CoverageResult>("RunCoverage", canonical);
-        //     var fraudTask    = ctx.CallActivityAsync<FraudResult>("RunFraud", canonical);
-        //     var timelineTask = ctx.CallActivityAsync<Timeline>("BuildTimeline", fnol); // or canonical
+        var coverageTask = context.CallActivityAsync<CoverageResult>(nameof(CoverageActivity.RunCoverage), canonical);
+        //     var fraudTask    = context.CallActivityAsync<FraudResult>("RunFraud", canonical);
+        //     var timelineTask = context.CallActivityAsync<Timeline>("BuildTimeline", fnol); // or canonical
 
-        //     await Task.WhenAll(coverageTask, fraudTask, timelineTask);
+        await Task.WhenAll(coverageTask);
 
         //     // 4) Aggregate & Comms
         //     var report = new ClaimAnalysisReport
@@ -46,8 +68,8 @@ public static class ClaimOrchestrator
         //     return report;
 
         return null;
-    
-    // return new ClaimAnalysisReport
+
+        // return new ClaimAnalysisReport
         //     {
         //         ClaimId = fnolClaim.ClaimId ?? "unknown",
         //         Raw = fnolClaim,

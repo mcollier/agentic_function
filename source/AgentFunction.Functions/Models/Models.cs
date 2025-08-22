@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Shared.Models
+namespace AgentFunction.Functions.Models
 {
     // -------------------------------------------------------
     // FNOL (raw intake) models
@@ -81,6 +81,31 @@ namespace Shared.Models
     public record CoverageBasis(
         string Section,   // e.g. "Collision Coverage §2.1"
         string Reason);   // justification tied to that section
+
+    // JSON Schema (shape only) for CoverageResult:
+    /*
+    {
+      "type": "object",
+      "properties": {
+        "Covered": { "type": "boolean" },
+        "Basis": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "Section": { "type": "string" },
+              "Reason": { "type": "string" }
+            },
+            "required": ["Section", "Reason"]
+          }
+        },
+        "Notes": { "type": "string" },
+        "Deductible": { "type": ["number", "null"] },
+        "CoverageLimit": { "type": ["number", "null"] }
+      },
+      "required": ["Covered", "Basis", "Notes"]
+    }
+    */
 
     // -------------------------------------------------------
     // Fraud Agent output (example)

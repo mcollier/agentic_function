@@ -1,25 +1,27 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using AgentFunction.Functions.Models;
+
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
-using Shared.Models;
+namespace AgentFunction.Functions.Agents;
 
-public interface IAgent<TIn, TOut>
-{
-    Task<TOut> ExecuteAsync(TIn input, CancellationToken ct = default);
-}
 public sealed class CompletenessAgent : IAgent<FnolClaim, CompletenessResult>
 {
     private readonly ChatCompletionAgent _agent;
+    private readonly ILogger<CompletenessAgent> _logger;
     // private readonly AgentModel _cfg;
 
     // public CompletenessAgent(Kernel kernel, IOptions<AgentSettings> settings)
-    public CompletenessAgent(Kernel kernel)
+    public CompletenessAgent(Kernel kernel, ILogger<CompletenessAgent> logger)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
         // _cfg = settings.Value.Completeness;
 
         _agent = new ChatCompletionAgent()
@@ -88,6 +90,7 @@ public sealed class CompletenessAgent : IAgent<FnolClaim, CompletenessResult>
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
             // FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             ResponseFormat = "json_object"
+            // ResponseFormat = typeof(CompletenessResult)
         };
 
         AgentInvokeOptions options = new()
@@ -97,7 +100,9 @@ public sealed class CompletenessAgent : IAgent<FnolClaim, CompletenessResult>
         };
 
         IAsyncEnumerable<AgentResponseItem<ChatMessageContent>> response =
-            _agent.InvokeAsync(message: content, options: options, cancellationToken:ct);
+            _agent.InvokeAsync(message: content,
+                               options: options,
+                               cancellationToken: ct);
 
         // Process the agent's response. Only concerned with the first item.
         ChatMessageContent? chatMessageContent = null;
@@ -109,21 +114,34 @@ public sealed class CompletenessAgent : IAgent<FnolClaim, CompletenessResult>
 
         var usage = chatMessageContent?.Metadata?["Usage"] as OpenAI.Chat.ChatTokenUsage;
 
-        // logger.LogInformation("Agent Response: {Response}", chatMessageContent?.Content);
+        // Log the raw agent response (may be null) and usage details via the injected logger.
+        var rawResponse = chatMessageContent?.Content;
+        _logger.LogInformation("Agent Response: {Response}", rawResponse ?? "<null>");
 
-        // TODO: Set up a logger to capture the agent's response and usage details.
-        Console.WriteLine($"Agent Response: {chatMessageContent?.Content}");
+        // Safely deserialize the agent response. If empty or invalid JSON is returned,
+        // log the problem and return an empty CompletenessResult.
+        if (string.IsNullOrWhiteSpace(rawResponse))
+        {
+            _logger.LogWarning("Agent returned an empty response; returning empty CompletenessResult.");
+            return new CompletenessResult(Array.Empty<string>(), Array.Empty<string>());
+        }
 
-        // TODO: GET CLEAN JSON RESPONSE
+        try
+        {
+            var result = JsonSerializer.Deserialize<CompletenessResult>(
+                rawResponse,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }
+            );
 
-        CompletenessResult result = JsonSerializer.Deserialize<CompletenessResult>(
-            chatMessageContent.Content,
-            new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }
-        ) ?? new CompletenessResult(Array.Empty<string>(), Array.Empty<string>());
-
-        return result;
+            return result ?? new CompletenessResult(Array.Empty<string>(), Array.Empty<string>());
+        }
+        catch (JsonException je)
+        {
+            _logger.LogError(je, "Failed to parse agent JSON response. Returning empty CompletenessResult. RawResponse: {Raw}", rawResponse);
+            return new CompletenessResult(Array.Empty<string>(), Array.Empty<string>());
+        }
     }
 }

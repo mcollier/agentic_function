@@ -1,7 +1,12 @@
+using System.ClientModel.Primitives;
+using AgentFunction.Functions.Agents;
+using AgentFunction.Functions.Plugins;
+
+using Azure.AI.OpenAI;
 using Azure.Communication.Email;
-using Azure.Identity;
 
 using Microsoft.Azure.Functions.Worker.Builder;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -36,24 +41,60 @@ builder.Services.AddSingleton(sp =>
 // Load AgentSettings from configuration
 // builder.Services.AddOptions<AgentSettings>().BindConfiguration("Agents");
 
+AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+
+// Enable diagnostics.
+AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnostics", true);
+
+// Uncomment the following line to enable diagnostics with sensitive data: prompts, completions, function calls, and more.
+AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnosticsSensitive", true);
+
+// Enable SK traces using OpenTelemetry.Extensions.Hosting extensions.
+// An alternative approach to enabling traces can be found here: https://learn.microsoft.com/en-us/semantic-kernel/concepts/enterprise-readiness/observability/telemetry-with-aspire-dashboard?tabs=Powershell&pivots=programming-language-csharp 
+builder.Services.AddOpenTelemetry().WithTracing(b => b.AddSource("Microsoft.SemanticKernel*"));
+
+// Enable SK metrics using OpenTelemetry.Extensions.Hosting extensions.
+// An alternative approach to enabling metrics can be found here: https://learn.microsoft.com/en-us/semantic-kernel/concepts/enterprise-readiness/observability/telemetry-with-aspire-dashboard?tabs=Powershell&pivots=programming-language-csharp
+builder.Services.AddOpenTelemetry().WithMetrics(b => b.AddMeter("Microsoft.SemanticKernel*"));
+
+
+
+builder.AddAzureOpenAIClient(
+    connectionName: Services.AzureOpenAI,
+    configureClientBuilder: clientBuilder =>
+    {
+        clientBuilder.ConfigureOptions((options) =>
+        {
+            // Set maxRetries to 3 to balance resilience against transient failures and avoid excessive delays.
+            options.RetryPolicy = new ClientRetryPolicy(maxRetries: 3);
+        });
+    }
+);
+
+
 builder.Services.AddSingleton<Kernel>(sp =>
 {
+    var client = sp.GetRequiredService<AzureOpenAIClient>();
+
     var kernel = Kernel.CreateBuilder();
 
-    // string aoaiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new InvalidOperationException("Azure OpenAI endpoint is not configured.");
+    var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME")
+                        ?? throw new InvalidOperationException("AZURE_OPENAI_DEPLOYMENT_NAME environment variable is not set.");
+
 
     kernel.AddAzureOpenAIChatCompletion(
-        deploymentName: "gpt-4o-mini",
-        // deploymentName: "dummy-deployment",
-        endpoint: "https://oai-agenticfunction.openai.azure.com/",
-        credentials: new DefaultAzureCredential());
+        deploymentName: deploymentName,
+        azureOpenAIClient: client
+    );
 
     // TODO: Add plugins here
-    kernel.Plugins.AddFromType<Shared.Agents.Tools.SchemaTools>("SchemaTools");
+    kernel.Plugins.AddFromType<SchemaTools>("SchemaTools");
 
     return kernel.Build();
 });
 
 builder.Services.AddSingleton<CompletenessAgent>();
+builder.Services.AddSingleton<CanonicalizeAgent>();
+builder.Services.AddSingleton<CoverageAgent>();
 
 builder.Build().Run();

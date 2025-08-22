@@ -3,7 +3,7 @@ using System.Text;
 
 using Microsoft.SemanticKernel;
 
-namespace Shared.Agents.Tools;
+namespace AgentFunction.Functions.Plugins;
 
 public sealed class SchemaTools
 {
@@ -11,6 +11,8 @@ public sealed class SchemaTools
     [KernelFunction, Description("Get the FNOL JSON schema used for validation.")]
     public static Task<string> GetFnolSchemaAsync()
     {
+        // TODO: Move to Azure Storage blob?
+
         // var path = Environment.GetEnvironmentVariable("FNOL_SCHEMA_PATH")
         //           ?? throw new InvalidOperationException("FNOL_SCHEMA_PATH not set");
         var path = "fnol.schema.json";

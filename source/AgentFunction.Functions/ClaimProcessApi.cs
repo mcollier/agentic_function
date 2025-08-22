@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-
+using AgentFunction.Functions.Models;
 using AgentFunction.Models;
 
 using Microsoft.Azure.Functions.Worker;
@@ -8,24 +8,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 
-using Shared.Models;
-
 namespace AgentFunction.Functions;
-
-public class RunCompleteness(CompletenessAgent completenessAgent)
-{
-    private readonly CompletenessAgent _completenessAgent = completenessAgent;
-
-    [Function(nameof(RunCompletnessAssessment))]
-    public async Task<CompletenessResult> RunCompletnessAssessment(
-        [ActivityTrigger] FnolClaim claim,
-        FunctionContext context)
-    {
-        ILogger logger = context.GetLogger(nameof(RunCompletnessAssessment));
-
-        return await _completenessAgent.ExecuteAsync(claim);
-    }
-}
 
 public class ClaimProcessApi
 {
@@ -53,7 +36,7 @@ public class ClaimProcessApi
         return await client.CreateCheckStatusResponseAsync(req, instanceId);
     }
 
-    
+
 
 
     [Function(nameof(StartClaimProcess))]
