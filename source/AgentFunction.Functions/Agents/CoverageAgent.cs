@@ -1,27 +1,30 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
+
 using AgentFunction.Functions.Models;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
-public sealed class CoverageAgent : IAgent<CanonicalClaim, CoverageResult>
+/**
+- Use only the provided policy text.
+- If the claim is outside the policy limits, respond with 'no'.
+
+            Tools:
+            - PolicyTools.GetPolicyDetailsByIdAsync(policyId) to fetch policy details by policy ID.
+*/
+public sealed class CoverageAgent : AgentBase<CanonicalClaim, CoverageResult>
 {
-    private readonly ChatCompletionAgent _agent;
-    private readonly ILogger<CoverageAgent> _logger;
+    private readonly ILogger<CoverageAgent> _typedLogger;
 
     public CoverageAgent(Kernel kernel, ILogger<CoverageAgent> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-        _agent = new ChatCompletionAgent()
-        {
-            Name = "CoverageAgent",
-            Instructions = @"You are an agent that checks insurance coverage for claims.
+        : base(kernel,
+               logger,
+               name: "CoverageAgent",
+               instructions: @"You are an agent that checks insurance coverage for claims.
             
             Goal:
             - Inspect a canonical claim JSON payload.
@@ -29,8 +32,8 @@ public sealed class CoverageAgent : IAgent<CanonicalClaim, CoverageResult>
             - Provide a clear 'yes' or 'no' answer.
 
             ### Rules
-            - Use only the provided policy text.
-            - If the claim is outside the policy limits, respond with 'no'.
+            
+            - If the claim is not covered by the policy, provide concise justifcation. Confidence must be more than 80% to determine the claim is not covered.
 
             ### Target JSON schema (shape only)
             {
@@ -58,22 +61,17 @@ public sealed class CoverageAgent : IAgent<CanonicalClaim, CoverageResult>
             ### Output
             Return **ONLY** the CoverageResult as strict JSON with exact property names. No markdown, no commentary.
            ",
-            Kernel = kernel,
-            Arguments = new KernelArguments(
-                new OpenAIPromptExecutionSettings()
-                {
-                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-                }
-            )
-        };
+               arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
+               {
+                   FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+               }))
+    {
+        _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<CoverageResult> ExecuteAsync(CanonicalClaim input, CancellationToken ct = default)
+    public override async Task<CoverageResult> ProcessAsync(CanonicalClaim input, CancellationToken ct = default)
     {
-        var claimJson = JsonSerializer.Serialize(input, new JsonSerializerOptions
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        });
+        var claimJson = SerializeInput(input);
 
         string policyText = """
                             Collision Coverage §2.1
@@ -87,8 +85,9 @@ public sealed class CoverageAgent : IAgent<CanonicalClaim, CoverageResult>
         var content = new ChatMessageContent(
             role: AuthorRole.User,
             content: $"Analyze this claim JSON to determine if the claim is covered by the policy.\n" +
-            $"Policy text: {policyText}\n" +
-            $"Claim JSON: {claimJson}\n"
+                    //  $"You may call PolicyTools.GetPolicyDetailsByIdAsync(policyId) to fetch policy details.\n" +
+                      $"Policy text: {policyText}\n" +
+                     $"Claim JSON: {claimJson}\n"
         );
 
         var execSettings = new OpenAIPromptExecutionSettings
@@ -97,40 +96,16 @@ public sealed class CoverageAgent : IAgent<CanonicalClaim, CoverageResult>
             Temperature = 0.2f,
             TopP = 1.0f,
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-            // FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-            // ResponseFormat = "json_object"
             ResponseFormat = typeof(CoverageResult)
         };
 
-        AgentInvokeOptions options = new()
-        {
-            KernelArguments = new KernelArguments(execSettings),
-            Kernel = _agent.Kernel,
-        };
+        var coverage = await InvokeAndDeserializeAsync<CoverageResult>(content, null, execSettings, ct).ConfigureAwait(false);
 
-        IAsyncEnumerable<AgentResponseItem<ChatMessageContent>> response =
-            _agent.InvokeAsync(message: content,
-                               options: options,
-                               cancellationToken: ct);
-
-        // Process the agent's response. Only concerned with the first item.
-        ChatMessageContent? chatMessageContent = null;
-        await foreach (AgentResponseItem<ChatMessageContent> item in response.ConfigureAwait(false))
-        {
-            chatMessageContent = item.Message;
-            break;
-        }
-
-        var usage = chatMessageContent?.Metadata?["Usage"] as OpenAI.Chat.ChatTokenUsage;
-
-        // Log the raw agent response (may be null) and usage details via the injected logger.
-        var rawResponse = chatMessageContent?.Content;
-        _logger.LogInformation("Agent Response: {Response}", rawResponse ?? "<null>");
-
-        // Deserialize the response content to get the result
-        var coverageResult = JsonSerializer.Deserialize<CoverageResult>(rawResponse);
-
-        // Deserialize the result into CoverageResult
-        return coverageResult;
+        return coverage ?? new CoverageResult(false, [], "");
     }
+
+    private static readonly JsonSerializerOptions s_writeOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 }

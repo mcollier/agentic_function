@@ -42,6 +42,7 @@ var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shar
 .WithReference(claimsAgent)
 .WithReference(apiService)
 .WithReference(queues)
+.WithReference(blobs)
 .WithReference(azureCommunicationService)
 .WithReference(azureOpenAi)
 .WaitFor(storage)

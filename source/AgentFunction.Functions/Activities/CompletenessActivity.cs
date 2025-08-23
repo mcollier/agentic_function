@@ -14,6 +14,6 @@ public class CompletenessActivity(CompletenessAgent completenessAgent)
     {
         ILogger logger = context.GetLogger(nameof(RunCompletnessAssessment));
 
-        return await completenessAgent.ExecuteAsync(claim);
+        return await completenessAgent.ProcessAsync(claim);
     }
 }

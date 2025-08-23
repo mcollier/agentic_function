@@ -39,22 +39,22 @@
     // }
     // Use 'postCreateCommand' to run commands after the container is created.
     // "postCreateCommand": "dotnet restore",
-    "onCreateCommand": "npm install -g azure-functions-core-tools@4.0.7332-preview1 &&dotnet tool install --global aspire.cli --prerelease && dotnet new install Aspire.ProjectTemplates --force",
+    "onCreateCommand": "npm install -g azure-functions-core-tools@4.0.7332-preview1 && dotnet tool install --global aspire.cli && dotnet new install Aspire.ProjectTemplates --force",
     "postStartCommand": "dotnet build source/AgentFunction.sln && dotnet dev-certs https --trust",
     "customizations": {
         "vscode": {
             "extensions": [
                 "azurite.azurite",
                 "bierner.markdown-emoji",
-                "humao.rest-client",
-                "GitHub.copilot-chat",
                 "GitHub.copilot",
+                "GitHub.copilot-chat",
                 "github.vscode-github-actions",
                 "github.vscode-pull-request-github@prerelease",
+                "humao.rest-client",
+                "jeremycaron.csharp-organize-usings",
                 "ms-dotnettools.csdevkit",
                 "ms-vscode.vscode-node-azure-pack",
-                "yzhang.markdown-all-in-one",
-                "jeremycaron.csharp-organize-usings"
+                "yzhang.markdown-all-in-one"
             ]
         }
     },

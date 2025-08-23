@@ -1,19 +1,20 @@
 using AgentFunction.Functions.Agents;
 using AgentFunction.Functions.Models;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace AgentFunction.Functions.Activities;
 
-public class CoverageActivity(CoverageAgent coverageAgent)
+public class FraudActivity(FraudAgent fraudAgent)
 {
-    [Function(nameof(RunCoverage))]
-    public async Task<CoverageResult> RunCoverage(
+    [Function(nameof(RunFraud))]
+    public async Task<FraudResult> RunFraud(
         [ActivityTrigger] CanonicalClaim claim,
         FunctionContext context)
     {
-        ILogger logger = context.GetLogger(nameof(RunCoverage));
+        ILogger logger = context.GetLogger(nameof(RunFraud));
 
-        return await coverageAgent.ProcessAsync(claim);
+        return await fraudAgent.ProcessAsync(claim);
     }
 }

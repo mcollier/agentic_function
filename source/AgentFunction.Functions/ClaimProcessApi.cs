@@ -36,9 +36,6 @@ public class ClaimProcessApi
         return await client.CreateCheckStatusResponseAsync(req, instanceId);
     }
 
-
-
-
     [Function(nameof(StartClaimProcess))]
     public async Task<HttpResponseData> StartClaimProcess(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req,

@@ -1,29 +1,23 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 using AgentFunction.Functions.Models;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
-public sealed class CanonicalizeAgent : IAgent<FnolClaim, CanonicalClaim>
+public sealed class CanonicalizeAgent : AgentBase<FnolClaim, CanonicalClaim>
 {
-    private readonly ChatCompletionAgent _agent;
-    private readonly ILogger<CanonicalizeAgent> _logger;
+    private readonly ILogger<CanonicalizeAgent> _typedLogger;
 
     public CanonicalizeAgent(Kernel kernel, ILogger<CanonicalizeAgent> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-        _agent = new ChatCompletionAgent()
-        {
-            Name = "CanonicalizeAgent",
-            Instructions = @"You are an agent that canonicalizes insurance claims.
+        : base(kernel,
+               logger,
+               name: "CanonicalizeAgent",
+               instructions: @"You are an agent that canonicalizes insurance claims.
             
             Goal:
             - Convert a raw FNOL JSON payload into a standardized CanonicalClaim format.
@@ -53,71 +47,53 @@ public sealed class CanonicalizeAgent : IAgent<FnolClaim, CanonicalClaim>
 
             ### Output
             Return **ONLY** the CanonicalClaim as strict JSON with the exact property names above. No markdown, no commentary.",
-            Kernel = kernel,
-            Arguments = new KernelArguments(
-                new OpenAIPromptExecutionSettings()
-                {
-                    FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-                }
-            )
-        };
+               arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
+               {
+                   FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+               }))
+    {
+        _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<CanonicalClaim> ExecuteAsync(FnolClaim input, CancellationToken ct = default)
+    public override async Task<CanonicalClaim> ProcessAsync(FnolClaim input, CancellationToken ct = default)
     {
-        var fnolJson = JsonSerializer.Serialize(input, new JsonSerializerOptions
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        });
+        var fnolJson = SerializeInput(input);
 
         var content = new ChatMessageContent(
             role: AuthorRole.User,
-            content: $"Canonicalize this FNOL into CanonicalClaim JSON as per instructions.\n" +
-            $"RAW FNOL:\n```json\n{fnolJson}\n```"
+            content: $"Canonicalize this FNOL into CanonicalClaim JSON as per instructions.\nRAW FNOL:\n```json\n{fnolJson}\n```"
         );
 
         var execSettings = new OpenAIPromptExecutionSettings
         {
-            // ModelId = _cfg.ModelId,
-            // Temperature = _cfg.Temperature,
-            // TopP = _cfg.TopP,
             ModelId = "gpt-4o-mini",
             Temperature = 0.2f,
             TopP = 1.0f,
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-            // FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             ResponseFormat = "json_object"
-            // ResponseFormat = typeof(CanonicalClaim)
         };
 
-        AgentInvokeOptions options = new()
-        {
-            KernelArguments = new KernelArguments(execSettings),
-            Kernel = _agent.Kernel,
-        };
+        var canonical = await InvokeAndDeserializeAsync<CanonicalClaim>(content, null, execSettings, ct).ConfigureAwait(false);
+            // raw => JsonSerializer.Deserialize<CanonicalClaim>(raw, s_writeOptions), execSettings, ct).ConfigureAwait(false);
 
-        IAsyncEnumerable<AgentResponseItem<ChatMessageContent>> response =
-            _agent.InvokeAsync(message: content,
-                               options: options,
-                               cancellationToken: ct);
-
-        // Process the agent's response. Only concerned with the first item.
-        ChatMessageContent? chatMessageContent = null;
-        await foreach (AgentResponseItem<ChatMessageContent> item in response.ConfigureAwait(false))
+        if (canonical is null)
         {
-            chatMessageContent = item.Message;
-            break;
+            _typedLogger.LogWarning("CanonicalizeAgent: parsed canonical claim was null; returning a minimal fallback.");
+            // Return a minimal fallback to keep downstream code simpler; fields set to defaults where possible
+            return new CanonicalClaim(input.ClaimId,
+                                      input.PolicyId,
+                                      input.LossDate,
+                                      new VehicleInfo("", "", null, null, null),
+                                      new AddressInfo("", "", "", ""),
+                                      input.Description ?? "",
+                                      Array.Empty<CanonicalParty>());
         }
 
-        var usage = chatMessageContent?.Metadata?["Usage"] as OpenAI.Chat.ChatTokenUsage;
-
-        var rawResponse = chatMessageContent?.Content;
-        _logger.LogInformation("Agent Response: {Response}", rawResponse ?? "<null>");
-
-        var canonicalClaim = JsonSerializer.Deserialize<CanonicalClaim>(rawResponse);
-
-        // Implement the logic to canonicalize the FnolClaim to CanonicalClaim
-        // This is a placeholder implementation
-        return canonicalClaim;
+        return canonical;
     }
+
+    private static readonly JsonSerializerOptions s_writeOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 }

@@ -1,5 +1,6 @@
 using AgentFunction.Functions.Activities;
 using AgentFunction.Functions.Models;
+
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -21,23 +22,24 @@ public static class ClaimOrchestrator
         // 1 - Completeness check over Raw FNOL
         var completenessResult = await context.CallActivityAsync<CompletenessResult>(nameof(CompletenessActivity.RunCompletnessAssessment), fnolClaim);
 
-        if (completenessResult.MissingFields.Length == 0)
+        if (completenessResult.MissingFields.Count == 0)
         {
             logger.LogInformation("FNOL claim is complete. Proceeding with processing.");
         }
         else
         {
             logger.LogWarning("FNOL claim is incomplete. Missing fields: {MissingFields}", string.Join(", ", completenessResult.MissingFields));
+
             // Handle incomplete claim logic here, e.g., notify user or halt processing
             return new ClaimAnalysisReport
             {
                 ClaimId = fnolClaim.ClaimId ?? "unknown",
                 Raw = fnolClaim,
                 Completeness = completenessResult,
-                Canonical = null, // No canonicalization if incomplete
-                Coverage = null,
-                Fraud = null,
-                Timeline = null
+                Canonical = null!, // No canonicalization if incomplete
+                Coverage = null!,
+                Fraud = null!,
+                Timeline = null!
             };
         }
         // 2) Canonicalize RAW → Canonical
@@ -45,39 +47,67 @@ public static class ClaimOrchestrator
 
         // 3) Fan-out on CANONICAL
         var coverageTask = context.CallActivityAsync<CoverageResult>(nameof(CoverageActivity.RunCoverage), canonical);
-        //     var fraudTask    = context.CallActivityAsync<FraudResult>("RunFraud", canonical);
+        var fraudTask = context.CallActivityAsync<FraudResult>(nameof(FraudActivity.RunFraud), canonical);
         //     var timelineTask = context.CallActivityAsync<Timeline>("BuildTimeline", fnol); // or canonical
 
-        await Task.WhenAll(coverageTask);
+        await Task.WhenAll(coverageTask, fraudTask);
 
-        //     // 4) Aggregate & Comms
-        //     var report = new ClaimAnalysisReport
-        //     {
-        //         ClaimId = fnol.ClaimId,
-        //         Raw = fnol,
-        //         Completeness = completeness,
-        //         Canonical = canonical,
-        //         Coverage = coverageTask.Result,
-        //         Fraud = fraudTask.Result,
-        //         Timeline = timelineTask.Result
-        //     };
+        // If the fraud score is above a certain threshold, we might want to halt further processing or flag for review
+        if (fraudTask.Result.Score > 0.6)
+        {
+            logger.LogWarning("High fraud risk detected: {Score}. Further investigation required.", fraudTask.Result.Score);
 
-        //     var comms = await ctx.CallActivityAsync<CommsOutput>("GenerateComms", report);
-        //     await ctx.CallActivityAsync("FinalizeClaim", (report, comms)); // see note below
+            using (var timeoutCts = new CancellationTokenSource())
+            {
+                // Handle high fraud risk logic here, e.g., notify user or escalate
+                DateTime dueTime = context.CurrentUtcDateTime.AddHours(72);
+                Task durableTimeout = context.CreateTimer(dueTime, timeoutCts.Token);
 
-        //     return report;
+                Task<bool> fraudReviewTask= context.WaitForExternalEvent<bool>("FraudReviewCompleted");
 
-        return null;
+                var winner = await Task.WhenAny(fraudReviewTask, durableTimeout);
 
-        // return new ClaimAnalysisReport
-        //     {
-        //         ClaimId = fnolClaim.ClaimId ?? "unknown",
-        //         Raw = fnolClaim,
-        //         Completeness = completenessResult,
-        //         Canonical = new CanonicalClaim(fnolClaim.ClaimId, fnolClaim.PolicyId, ), // placeholder
-        //         Coverage = new CoverageResult(false, Array.Empty<CoverageBasis>(), ""),
-        //         Fraud = new FraudResult(0, Array.Empty<string>()),
-        //         Timeline = new Timeline(Array.Empty<TimelineEvent>())
-        //     };
+                // if (fraudReviewResult == await Task.WhenAny(fraudReviewResult, durableTimeout))
+                if (winner == fraudReviewTask)
+                {
+                    timeoutCts.Cancel();
+                    logger.LogInformation("Fraud review completed. Resuming processing.");
+                }
+                else
+                {
+                    // TODO: Do some other activity for when fraud review times out!
+
+                    logger.LogWarning("Fraud review timed out.");
+                }
+            }
+        }
+        else
+        {
+            logger.LogInformation("Fraud risk is within acceptable limits: {Score}.", fraudTask.Result.Score);
+        }
+
+        // 4) Aggregate & Comms
+        var report = new ClaimAnalysisReport
+        {
+            ClaimId = fnolClaim.ClaimId,
+            Raw = fnolClaim,
+            Completeness = completenessResult,
+            Canonical = canonical,
+            Coverage = coverageTask.Result,
+            Fraud = fraudTask.Result,
+            Timeline = null // Haven't implemented timeline processing yet
+        };
+
+        // 5) Send communications
+        var comms = await context.CallActivityAsync<CommsResult>(nameof(CommunicationActivity.RunComms), report);
+        await context.CallActivityAsync(nameof(CommunicationActivity.Send), comms);
+
+        // Include communications in the report
+        report.Communications = comms;
+
+        // 6) Finalize - store results
+        await context.CallActivityAsync(nameof(FinalizeActivity.FinalizeClaim), report);
+
+        return report;
     }
 }

@@ -20,6 +20,7 @@ var builder = FunctionsApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.AddAzureQueueServiceClient(Services.AzureStorageQueues);
+builder.AddAzureBlobServiceClient(Services.AzureStorageBlobs);
 
 builder.ConfigureFunctionsWebApplication();
 
@@ -89,6 +90,8 @@ builder.Services.AddSingleton<Kernel>(sp =>
 
     // TODO: Add plugins here
     kernel.Plugins.AddFromType<SchemaTools>("SchemaTools");
+    kernel.Plugins.AddFromType<PriorClaimsTools>("PriorClaimsTools");
+    kernel.Plugins.AddFromType<PolicyTools>("PolicyTools");
 
     return kernel.Build();
 });
@@ -96,5 +99,7 @@ builder.Services.AddSingleton<Kernel>(sp =>
 builder.Services.AddSingleton<CompletenessAgent>();
 builder.Services.AddSingleton<CanonicalizeAgent>();
 builder.Services.AddSingleton<CoverageAgent>();
+builder.Services.AddSingleton<FraudAgent>();
+builder.Services.AddSingleton<CommsAgent>();
 
 builder.Build().Run();

@@ -64,9 +64,13 @@ namespace AgentFunction.Functions.Models
     // -------------------------------------------------------
     // Completeness Agent output
     // -------------------------------------------------------
+    // public record CompletenessResult(
+    //     string[] MissingFields,          // JSON Pointer paths
+    //     string[] ClarifyingQuestions);   // human-friendly questions
+
     public record CompletenessResult(
-        string[] MissingFields,          // JSON Pointer paths
-        string[] ClarifyingQuestions);   // human-friendly questions
+        List<string> MissingFields,          // JSON Pointer paths
+        List<string> ClarifyingQuestions);   // human-friendly questions
 
     // -------------------------------------------------------
     // Coverage Agent output
@@ -110,9 +114,19 @@ namespace AgentFunction.Functions.Models
     // -------------------------------------------------------
     // Fraud Agent output (example)
     // -------------------------------------------------------
+    public record FraudSignal(
+        [property: JsonPropertyName("id")] string Id,
+        [property: JsonPropertyName("title")] string Title,
+        [property: JsonPropertyName("severity")] string Severity,
+        [property: JsonPropertyName("confidence")] double Confidence,
+        [property: JsonPropertyName("evidence")] string[] Evidence,
+        [property: JsonPropertyName("suggestedAction")] string SuggestedAction);
+
     public record FraudResult(
-        double Score,     // 0-1 risk score
-        string[] Signals);
+        [property: JsonPropertyName("score")] double Score,     // 0-1 risk score
+        [property: JsonPropertyName("signals")] FraudSignal[] Signals,
+        [property: JsonPropertyName("rationale")] string Rationale,
+        [property: JsonPropertyName("safeToAutoPay")] bool SafeToAutoPay);
 
     // -------------------------------------------------------
     // Timeline Agent output (example)
@@ -133,13 +147,21 @@ namespace AgentFunction.Functions.Models
         public string ClaimId { get; init; } = default!;
         public FnolClaim Raw { get; init; } = default!;
         public CompletenessResult Completeness { get; init; } =
-            new(Array.Empty<string>(), Array.Empty<string>());
+            new([], []);
         public CanonicalClaim Canonical { get; init; } = default!;
         public CoverageResult Coverage { get; init; } =
-            new(false, Array.Empty<CoverageBasis>(), "");
+            new(false, [], "");
         public FraudResult Fraud { get; init; } =
-            new(0, Array.Empty<string>());
+            new(0, Array.Empty<FraudSignal>(), string.Empty, false);
         public Timeline Timeline { get; init; } =
-            new(Array.Empty<TimelineEvent>());
+            new([]);
+
+        public CommsResult? Communications { get; set; } 
     }
+
+    public record CommsResult(EmailContent Email, string Sms);
+    public record EmailContent(string Subject,
+                               string Body,
+                               string RecipientEmailAddress,
+                               string RecipientName);
 }
