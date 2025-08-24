@@ -1,5 +1,6 @@
 using AgentFunction.ApiService.Services;
 using AgentFunction.Models;
+using AgentFunction.Models.Dtos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddScoped<IClaimsService, ClaimsService>();
+builder.Services.AddScoped<IClaimHistoryService, ClaimHistoryService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -52,6 +54,25 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
 .WithSummary("Get customer claims history")
 .WithDescription("Returns the historical insurance claims for a specific customer")
 .Produces<IEnumerable<Claim>>(200)
+.Produces(400);
+
+// Policy claims endpoint
+app.MapGet("/api/policy/{policyId}/claims", async (string policyId, IClaimHistoryService claimHistoryService) =>
+{
+    if (string.IsNullOrWhiteSpace(policyId))
+    {
+        return Results.BadRequest("Policy ID is required");
+    }
+
+    var claims = await claimHistoryService.GetClaimsByPolicyIdAsync(policyId);
+
+    // Return 200 with claims (could be empty collection)
+    return Results.Ok(claims);
+})
+.WithName("GetPolicyClaimsHistory")
+.WithSummary("Get policy claims history")
+.WithDescription("Returns all claims associated with a specific policy ID")
+.Produces<IEnumerable<ClaimDto>>(200)
 .Produces(400);
 
 app.MapDefaultEndpoints();
