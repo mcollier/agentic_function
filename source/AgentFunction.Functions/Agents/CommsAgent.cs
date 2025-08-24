@@ -47,6 +47,7 @@ public sealed class CommsAgent : AgentBase<ClaimAnalysisReport, CommsResult>
 
                 ## POLICY GUARDRAILS
                 - If CoverageResult.covered == false, avoid blame; provide next steps and contact options.
+                - If CoverageResult.covered == true, acknowledge coverage and include the deductible amount (if applicable).
                 - If CompletenessResult has missingFields, list max 3 actionable items.
                 - If FraudResult.score >= 0.6, avoid the term ""fraud""; say ""additional review"" and extend timelines.
                 - Never commit to payout amounts.

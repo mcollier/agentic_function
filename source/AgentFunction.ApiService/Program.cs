@@ -45,7 +45,7 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
     {
         return Results.NotFound();
     }
-    
+
     return Results.Ok(claims);
 })
 .WithName("GetCustomerClaimsHistory")
@@ -53,6 +53,11 @@ app.MapGet("/customers/{customerId}/claims/history", async (string customerId, I
 .WithDescription("Returns the historical insurance claims for a specific customer")
 .Produces<IEnumerable<Claim>>(200)
 .Produces(400);
+
+app.MapGet("/customer/{customerId}/claims", async (string customerId, IClaimsService claimsService) =>
+{
+    return Results.InternalServerError("Not implemented");
+});
 
 app.MapDefaultEndpoints();
 

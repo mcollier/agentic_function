@@ -42,6 +42,7 @@ public static class ClaimOrchestrator
                 Timeline = null!
             };
         }
+
         // 2) Canonicalize RAW → Canonical
         var canonical = await context.CallActivityAsync<CanonicalClaim>(nameof(CanonicalizeActivity.RunCanonicalize), fnolClaim);
 
@@ -60,7 +61,8 @@ public static class ClaimOrchestrator
             using (var timeoutCts = new CancellationTokenSource())
             {
                 // Handle high fraud risk logic here, e.g., notify user or escalate
-                DateTime dueTime = context.CurrentUtcDateTime.AddHours(72);
+                // DateTime dueTime = context.CurrentUtcDateTime.AddHours(72);
+                DateTime dueTime = context.CurrentUtcDateTime.AddMinutes(5); // For demo/testing, use 5 minutes
                 Task durableTimeout = context.CreateTimer(dueTime, timeoutCts.Token);
 
                 Task<bool> fraudReviewTask= context.WaitForExternalEvent<bool>("FraudReviewCompleted");

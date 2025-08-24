@@ -76,6 +76,7 @@ namespace AgentFunction.Functions.Models
     // Coverage Agent output
     // -------------------------------------------------------
     public record CoverageResult(
+        double Confidence,
         bool Covered,
         CoverageBasis[] Basis,
         string Notes,
@@ -150,7 +151,7 @@ namespace AgentFunction.Functions.Models
             new([], []);
         public CanonicalClaim Canonical { get; init; } = default!;
         public CoverageResult Coverage { get; init; } =
-            new(false, [], "");
+            new(0, false, [], "", 0, 0);
         public FraudResult Fraud { get; init; } =
             new(0, Array.Empty<FraudSignal>(), string.Empty, false);
         public Timeline Timeline { get; init; } =

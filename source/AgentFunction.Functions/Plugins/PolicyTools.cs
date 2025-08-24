@@ -1,12 +1,28 @@
 using System.ComponentModel;
 using System.Text;
-
 using Microsoft.SemanticKernel;
 
 namespace AgentFunction.Functions.Plugins;
 
 public sealed partial class PolicyTools
 {
+    // [KernelFunction("get_policy_details_by_id")]
+    // [Description("Get policy details by policy ID.")]
+    // public static string GetPolicyDetailsById(
+    //     [Description(@"Exact policy identifier (e.g., ""P-998877""). Must match ^P-\d{5,10}$.")] string policyId)
+    // {
+    //     string policyText = """
+    //                         Collision Coverage §2.1
+    //                         We cover direct and accidental loss to your covered auto caused by collision...
+    //                         Deductible §2.4
+    //                         A $500 deductible applies to each collision claim...
+    //                         Exclusions §3.2
+    //                         We do not cover losses that occur during commercial use...
+    //                         """; // This should be provided or fetched from a relevant source
+
+    //     return policyText;
+    // }
+
     [KernelFunction("get_policy_details_by_id")]
     // [Description("Get policy details by policy ID.")]
     [Description(
@@ -38,6 +54,7 @@ public sealed partial class PolicyTools
         {
             throw new ArgumentException("Invalid policyId format. Must match ^P-\\d{5,10}$.", nameof(policyId));
         }
+        
         // Implementation goes here
         var path = $"samples/policies/{policyId}.md";
 
@@ -45,7 +62,7 @@ public sealed partial class PolicyTools
         {
             throw new FileNotFoundException($"Policy document not found for policyId: {policyId}", path);
         }
-        
+
         return File.ReadAllTextAsync(path, Encoding.UTF8);
     }
 

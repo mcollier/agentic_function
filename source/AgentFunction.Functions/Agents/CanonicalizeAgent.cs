@@ -69,7 +69,8 @@ public sealed class CanonicalizeAgent : AgentBase<FnolClaim, CanonicalClaim>
             ModelId = "gpt-4o-mini",
             Temperature = 0.2f,
             TopP = 1.0f,
-            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            // ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
             ResponseFormat = "json_object"
         };
 

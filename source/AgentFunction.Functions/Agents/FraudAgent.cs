@@ -140,7 +140,8 @@ public sealed class FraudAgent : AgentBase<CanonicalClaim, FraudResult>
             ModelId = "gpt-4o-mini",
             Temperature = 0.2f,
             TopP = 1.0f,
-            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            // ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
             ResponseFormat = "json_object"
         };
 

@@ -18,7 +18,8 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
                     ""missingFields"": [""/parties/0/contact/phone""],
                     ""clarifyingQuestions"": [""What is the phone number for the first party's contact?"" ]
                 }
-
+ Tools:
+            - SchemaTools.GetFnolSchemaAsync() to fetch the schema.
                 - SchemaTools.GetEnumValues(field) for canonical enums.
                 */
     public CompletenessAgent(Kernel kernel, ILogger<CompletenessAgent> logger)
@@ -33,10 +34,6 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
             - Generate clarifying questions for the customer to fill in missing information.
             - Use JSON Pointer paths to indicate missing fields, e.g., '/parties/0/contact/phone'.
 
-            Tools:
-            - SchemaTools.GetFnolSchemaAsync() to fetch the schema.
-            - SchemaTools.GetEnumValues(field) for canonical enums.
-            
             Output STRICT JSON ONLY:
                 {
                     ""missingFields"": [""/parties/0/contact/phone""],
@@ -58,8 +55,8 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
         var content = new ChatMessageContent(
             role: AuthorRole.User,
             content: $"Analyze this FNOL JSON for missing/inconsistent fields and produce the required JSON output.\n" +
-                     $"You may call functions to assist in your analysis.\n" +
-                      $"You may call SchemaTools.GetFnolSchemaAsync() and SchemaTools.GetEnumValues(field).\n" +
+                    //  $"You may call functions to assist in your analysis.\n" +
+                    //  $"You may call SchemaTools.GetFnolSchemaAsync() and SchemaTools.GetEnumValues(field).\n" +
                      $"FNOL JSON:\n" +
                      $"```json\n{fnolJson}\n```"
         );
@@ -69,7 +66,6 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
             ModelId = "gpt-4o-mini",
             Temperature = 0.2f,
             TopP = 1.0f,
-            // ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
             FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
             ResponseFormat = "json_object"
             // ResponseFormat = typeof(CompletenessResult)
