@@ -75,6 +75,31 @@ app.MapGet("/api/policy/{policyId}/claims", async (string policyId, IClaimHistor
 .Produces<IEnumerable<ClaimDto>>(200)
 .Produces(400);
 
+// Claims history endpoint
+// app.MapGet("/customers/{customerId}/claims/history", async (string customerId, IClaimsService claimsService) =>
+// {
+//     if (string.IsNullOrWhiteSpace(customerId))
+//     {
+//         return Results.BadRequest("Customer ID is required");
+//     }
+
+//     var claims = await claimsService.GetClaimsHistoryAsync(customerId);
+
+//     // If no claims where found, return a 404 response.  Otherwise, return 200.
+//     if (claims == null || !claims.Any())
+//     {
+//         return Results.NotFound();
+//     }
+
+//     return Results.Ok(claims);
+// })
+// .WithName("GetCustomerClaimsHistory")
+// .WithSummary("Get customer claims history")
+// .WithDescription("Returns the historical insurance claims for a specific customer")
+// .Produces<IEnumerable<Claim>>(200)
+// >>>>>>> agentic-refactor-2
+// .Produces(400);
+
 app.MapDefaultEndpoints();
 
 app.MapMcp();

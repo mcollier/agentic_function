@@ -1,0 +1,56 @@
+POST http://localhost:7071/api/StartClaim
+Content-Type: application/json
+
+{
+  "claimId": "C-12345",
+  "policyId": "P-98765",
+  "lossDate": "2025-08-15T14:30:00Z",
+  "vehicle": "2019 Honda Civic LX",
+  "location": "123 Main St, Dublin, OH 43017",
+  "description": "Rear-ended at a stoplight. Minor damage to bumper.",
+  "parties": [
+    {
+      "role": "insured",
+      "name": "Alice Johnson",
+      "contact": {
+        "phone": "555-123-4567",
+        "email": "alice.johnson@example.com"
+      }
+    },
+    {
+      "role": "third_party",
+      "name": "Bob Smith",
+      "contact": {
+        "phone": "555-987-6543",
+        "email": "bob.smith@example.com"
+      }
+    }
+  ],
+  "attachments": [
+    {
+      "type": "photo",
+      "format": "jpg",
+      "uri": "https://storage.example.com/claims/C-12345/photo1.jpg"
+    },
+    {
+      "type": "police_report",
+      "format": "pdf",
+      "uri": "https://storage.example.com/claims/C-12345/report.pdf"
+    }
+  ]
+}
+
+
+### Invalid sample
+
+POST http://localhost:7071/api/StartClaim
+Content-Type: application/json
+
+{
+  "claimId": "C-99999",
+  "lossDate": "2025-08-20T13:00:00Z",
+  "vehicle": "2021 Toyota Camry SE",
+  "description": "Side-swiped while parked. Scratches on driver's side door.",
+  "parties": []
+}
+

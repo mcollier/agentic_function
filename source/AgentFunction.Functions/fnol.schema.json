@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/fnol.schema.json",
+  "title": "FnolClaim",
+  "description": "Schema for First Notice of Loss (FNOL) insurance claim intake",
+  "type": "object",
+  "properties": {
+    "claimId": {
+      "type": "string",
+      "description": "Unique identifier for the claim"
+    },
+    "policyId": {
+      "type": "string",
+      "description": "Policy identifier"
+    },
+    "lossDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date and time of the loss"
+    },
+    "vehicle": {
+      "type": "string",
+      "description": "Raw free-text vehicle description (e.g. '2019 Honda Civic LX')"
+    },
+    "location": {
+      "type": "string",
+      "description": "Raw free-text location of loss (address, intersection, etc.)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Free-text description of the incident"
+    },
+    "parties": {
+      "type": "array",
+      "description": "People or organizations involved in the claim",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Role of the party (e.g. insured, third_party, witness, claimant)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the party"
+          },
+          "contact": {
+            "type": "object",
+            "description": "Optional contact details",
+            "properties": {
+              "phone": {
+                "type": "string",
+                "description": "Phone number of the party"
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "description": "Email address of the party"
+              }
+            },
+            "required": []
+          }
+        },
+        "required": ["role", "name"]
+      }
+    },
+    "attachments": {
+      "type": "array",
+      "description": "Supporting documents such as photos or police reports",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Attachment type (e.g. photo, police_report)"
+          },
+          "format": {
+            "type": "string",
+            "description": "File format (e.g. jpg, pdf)"
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "Location of the attachment"
+          }
+        },
+        "required": ["type", "format", "uri"]
+      }
+    }
+  },
+  "required": ["claimId", "policyId", "lossDate", "vehicle", "location", "description", "parties"],
+  "additionalProperties": false
+}

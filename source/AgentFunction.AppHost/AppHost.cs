@@ -8,7 +8,6 @@ var existingAzureOpenAIModelName = builder.AddParameter("existingAzureOpenAIMode
 var azureDurableTaskSchedulerConnectionString = builder.AddParameter("azureDurableTaskSchedulerConnectionString");
 var azureDurableTaskSchedulerTaskHubName = builder.AddParameter("azureDurableTaskSchedulerTaskHubName");
 var senderEmailAddress = builder.AddParameter("senderEmailAddress");
-
 var recipientEmailAddress = builder.AddParameter("recipientEmailAddress");
 
 var storage = builder.AddAzureStorage(Shared.Services.AzureStorage)
@@ -32,21 +31,24 @@ var azureCommunicationService = builder.AddConnectionString("AzureCommunicationS
 var apiService = builder.AddProject<Projects.ApiService>(Shared.Services.ApiService)
     .WithHttpHealthCheck("/health");
 
-var claimsAgent = builder.AddProject<Projects.ClaimsAgentService>(Shared.Services.ClaimsAgentService)
-    .WithEnvironment("MCP_SERVER_URL", apiService.GetEndpoint("http"))
-    .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", existingAzureOpenAIModelName)
-    .WithHttpHealthCheck("/health")
-    .WithReference(azureOpenAi);
+// var claimsAgent = builder.AddProject<Projects.ClaimsAgentService>(Shared.Services.ClaimsAgentService)
+//     .WithEnvironment("MCP_SERVER_URL", apiService.GetEndpoint("http"))
+//     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", existingAzureOpenAIModelName)
+//     .WithHttpHealthCheck("/health")
+//     .WithReference(azureOpenAi);
 
 var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shared.Services.FunctionsService)
 .WithHostStorage(storage)
-.WithReference(claimsAgent)
+// .WithReference(claimsAgent)
 .WithReference(apiService)
 .WithReference(queues)
+.WithReference(blobs)
 .WithReference(azureCommunicationService)
+.WithReference(azureOpenAi)
 .WaitFor(storage)
-.WaitFor(claimsAgent)
+// .WaitFor(claimsAgent)
 .WaitFor(apiService)
+.WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", existingAzureOpenAIModelName)
 .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", azureDurableTaskSchedulerConnectionString)
 .WithEnvironment("TASKHUB_NAME", azureDurableTaskSchedulerTaskHubName)
 .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)

@@ -1,5 +1,6 @@
 using System.Net;
-
+using System.Text.Json;
+using AgentFunction.Functions.Models;
 using AgentFunction.Models;
 
 using Microsoft.Azure.Functions.Worker;
@@ -11,6 +12,30 @@ namespace AgentFunction.Functions;
 
 public class ClaimProcessApi
 {
+    [Function(nameof(StartClaim))]
+    public async Task<HttpResponseData> StartClaim(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req,
+        [DurableClient] DurableTaskClient client,
+        FunctionContext executionContext
+    )
+    {
+        ILogger logger = executionContext.GetLogger(nameof(StartClaim));
+        logger.LogInformation("Received request to start claim processing.");
+
+        FnolClaim? fnolClaim = await JsonSerializer.DeserializeAsync<FnolClaim>(
+            req.Body,
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+        var instanceId =
+            await client.ScheduleNewOrchestrationInstanceAsync(nameof(ClaimOrchestrator.RunClaimOrchestration), fnolClaim);
+        logger.LogInformation("Started orchestration with ID: {instanceId}", instanceId);
+
+        return await client.CreateCheckStatusResponseAsync(req, instanceId);
+    }
+
     [Function(nameof(StartClaimProcess))]
     public async Task<HttpResponseData> StartClaimProcess(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req,

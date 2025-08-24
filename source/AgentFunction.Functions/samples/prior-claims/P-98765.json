@@ -1,0 +1,106 @@
+[
+  {
+    "claimId": "C-1001",
+    "policyId": "P-98765",
+    "lossDate": "2025-03-12T14:45:00Z",
+    "reportDate": "2025-03-13T09:10:00Z",
+    "location": {
+      "line1": "456 Oak Ave",
+      "city": "Columbus",
+      "state": "OH",
+      "postalCode": "43215"
+    },
+    "vehicle": {
+      "make": "Honda",
+      "model": "Civic",
+      "trim": "LX",
+      "year": 2019,
+      "vin": "1HGCM82633A004352"
+    },
+    "parties": [
+      {
+        "role": "Insured",
+        "name": "Alice Johnson",
+        "contact": {
+          "phone": "555-123-4567",
+          "email": "alice.johnson@example.com"
+        }
+      },
+      {
+        "role": "ThirdParty",
+        "name": "Bob Smith",
+        "contact": {
+          "phone": "555-987-6543",
+          "email": "bob.smith@example.com"
+        }
+      }
+    ],
+    "vendor": "QuickFix Auto Repair",
+    "payout": 1800.00,
+    "status": "Closed"
+  },
+  {
+    "claimId": "C-1007",
+    "policyId": "P-98765",
+    "lossDate": "2025-06-28T16:15:00Z",
+    "reportDate": "2025-07-05T08:20:00Z",
+    "location": {
+      "line1": "789 Pine St",
+      "city": "Dayton",
+      "state": "OH",
+      "postalCode": "45402"
+    },
+    "vehicle": {
+      "make": "Honda",
+      "model": "Civic",
+      "trim": "LX",
+      "year": 2019,
+      "vin": "1HGCM82633A004352"
+    },
+    "parties": [
+      {
+        "role": "Insured",
+        "name": "Alice Johnson",
+        "contact": {
+          "phone": "555-123-4567",
+          "email": "alice.johnson@example.com"
+        }
+      }
+    ],
+    "vendor": "QuickFix Auto Repair",
+    "payout": 2200.00,
+    "status": "Closed"
+  },
+  {
+    "claimId": "C-1010",
+    "policyId": "P-98765",
+    "lossDate": "2025-07-12T19:30:00Z",
+    "reportDate": "2025-07-30T11:00:00Z",
+    "location": {
+      "line1": "135 Maple Rd",
+      "city": "Cincinnati",
+      "state": "OH",
+      "postalCode": "45202"
+    },
+    "vehicle": {
+      "make": "Honda",
+      "model": "Civic",
+      "trim": "LX",
+      "year": 2019,
+      "vin": "1HGCM82633A004352"
+    },
+    "parties": [
+      {
+        "role": "Insured",
+        "name": "Alice Johnson",
+        "contact": {
+          "phone": "555-123-4567",
+          "email": "alice.johnson@example.com"
+        }
+      }
+    ],
+    "vendor": "QuickFix Auto Repair",
+    "payout": 1950.00,
+    "status": "Open"
+  }
+]

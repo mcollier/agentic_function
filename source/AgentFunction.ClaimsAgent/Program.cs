@@ -45,7 +45,7 @@ builder.Services.AddKernel();
 
 // Set up Semantic Kernel logging.
 // Enable model diagnostics with sensitive data.
-AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnosticsSensitive", true);
+//AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnosticsSensitive", true);
 
 
 // Add AI Services.
@@ -136,6 +136,8 @@ static async Task AddAgent(WebApplicationBuilder builder)
     builder.Services.AddTransient((sp) =>
     {
         var kernel = sp.GetRequiredService<Kernel>();
+
+        // Add the tools!
         kernel.Plugins.AddFromType<ClaimsProcessingPlugin>("ClaimsProcessingPlugin");
 
         // Add MCP tools!
