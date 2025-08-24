@@ -2,7 +2,7 @@
 
 public static class Services
 {
-    public const string ApiService = "apiservice";
+    public const string PolicyApi = "policyapi";
     public const string ClaimsAgentService = "claimsagent";
     public const string FunctionsService = "functions";
 

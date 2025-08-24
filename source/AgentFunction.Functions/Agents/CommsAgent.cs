@@ -5,6 +5,7 @@ using AgentFunction.Functions.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
@@ -53,15 +54,17 @@ public sealed class CommsAgent : AgentBase<ClaimAnalysisReport, CommsResult>
                 - Never commit to payout amounts.
                 - Always include a support path (1-800-555-5555 and https://www.censurance.com).
 
-             """,
-               arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-               {
-                   MaxTokens = 800,
-                   Temperature = 0.7f,
-                   TopP = 1.0f,
-                   FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-                   ResponseFormat = "json_object"
-               }))
+             """
+            //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
+            //    {
+            //        ModelId = "gpt-4.1",
+            //        MaxTokens = 800,
+            //        Temperature = 0.7f,
+            //        TopP = 1.0f,
+            //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+            //        ResponseFormat = "json_object"
+            //    })
+               )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -73,14 +76,37 @@ public sealed class CommsAgent : AgentBase<ClaimAnalysisReport, CommsResult>
         var userMessage = new ChatMessageContent(
             role: AuthorRole.User,
             content: $"Generate customer communications based on this claim analysis report.\n" +
-                     $"Return STRICT JSON with keys: email, sms, inApp.\n" +
+                     $"Return STRICT JSON with keys: email, sms.\n" +
                      $"Claim Analysis Report JSON:\n" +
                      $"```json\n{reportJson}\n```"
         );
 
         try
         {
-            var result = await InvokeAndDeserializeAsync<CommsResult>(userMessage, null, null, ct).ConfigureAwait(false);
+            var azureExecSettings = new AzureOpenAIPromptExecutionSettings
+            {
+                ServiceId = "gpt-4.1",
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+                Temperature = 0.2f,
+                TopP = 1.0f,
+                ResponseFormat = "json_object"
+            };
+
+            // var execSettings = new OpenAIPromptExecutionSettings
+            // {
+            //     ModelId = "gpt-4.1",
+            //     Temperature = 0.2f,
+            //     TopP = 1.0f,
+            //     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+            //     ResponseFormat = "json_object"
+            //     // ResponseFormat = typeof(CompletenessResult)
+            // };
+        
+            var result = await InvokeAndDeserializeAsync<CommsResult>(
+                userMessage,
+                customDeserializer: null,
+                execSettings: azureExecSettings,
+                cancellationToken: ct).ConfigureAwait(false);
 
             return result ?? new CommsResult(null!, null!);
         }

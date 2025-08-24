@@ -1,7 +1,0 @@
-@hostAddress = http://localhost:5476
-
-# Get claim history
-GET {{hostAddress}}/customers/32-445-8382/claims/history
-
-###
-GET {{hostAddress}}/customers/123/claims/history

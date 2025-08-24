@@ -5,7 +5,7 @@ using AgentFunction.Functions.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
@@ -39,31 +39,40 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
                     ""missingFields"": [""/parties/0/contact/phone""],
                     ""clarifyingQuestions"": [""What is the phone number for the first party's contact?"" ]
                 }
-            ",
-               arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-               {
-                   FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-               }))
+            "
+               //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
+               //    {
+               //        ModelId = "gpt-4o-mini",
+               //        Temperature = 0.2f,
+               //        TopP = 1.0f,
+               //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+               //        ResponseFormat = "json_object"
+               //    })
+               )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public override async Task<CompletenessResult> ProcessAsync(FnolClaim input, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(input, nameof(input));
+
+        _typedLogger.LogInformation("Starting completeness check for ClaimId: {ClaimId}", input.ClaimId);
+
         var fnolJson = SerializeInput(input);
 
-        var content = new ChatMessageContent(
+        var userMessage = new ChatMessageContent(
             role: AuthorRole.User,
             content: $"Analyze this FNOL JSON for missing/inconsistent fields and produce the required JSON output.\n" +
-                    //  $"You may call functions to assist in your analysis.\n" +
-                    //  $"You may call SchemaTools.GetFnolSchemaAsync() and SchemaTools.GetEnumValues(field).\n" +
+                     //  $"You may call functions to assist in your analysis.\n" +
+                     //  $"You may call SchemaTools.GetFnolSchemaAsync() and SchemaTools.GetEnumValues(field).\n" +
                      $"FNOL JSON:\n" +
                      $"```json\n{fnolJson}\n```"
         );
 
-        var execSettings = new OpenAIPromptExecutionSettings
+        var execSettings = new AzureOpenAIPromptExecutionSettings
         {
-            ModelId = "gpt-4o-mini",
+            ServiceId = "gpt-4o-mini",
             Temperature = 0.2f,
             TopP = 1.0f,
             FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
@@ -73,7 +82,11 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
 
         try
         {
-            var result = await InvokeAndDeserializeAsync<CompletenessResult>(content, null, execSettings, ct).ConfigureAwait(false);
+            var result = await InvokeAndDeserializeAsync<CompletenessResult>(
+                userMessage,
+                customDeserializer: null,
+                execSettings: execSettings,
+                cancellationToken: ct).ConfigureAwait(false);
             // raw => JsonSerializer.Deserialize<CompletenessResult>(raw, s_writeOptions), execSettings, ct).ConfigureAwait(false);
 
             return result ?? new CompletenessResult([], []);

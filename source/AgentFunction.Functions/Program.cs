@@ -4,14 +4,14 @@ using AgentFunction.Functions.Plugins;
 
 using Azure.AI.OpenAI;
 using Azure.Communication.Email;
-
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.SemanticKernel;
-
+using ModelContextProtocol.Client;
 using Shared;
 
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -72,29 +72,8 @@ builder.AddAzureOpenAIClient(
     }
 );
 
+await AddAIServices(builder);
 
-builder.Services.AddSingleton<Kernel>(sp =>
-{
-    var client = sp.GetRequiredService<AzureOpenAIClient>();
-
-    var kernel = Kernel.CreateBuilder();
-
-    var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME")
-                        ?? throw new InvalidOperationException("AZURE_OPENAI_DEPLOYMENT_NAME environment variable is not set.");
-
-
-    kernel.AddAzureOpenAIChatCompletion(
-        deploymentName: deploymentName,
-        azureOpenAIClient: client
-    );
-
-    // TODO: Add plugins here
-    kernel.Plugins.AddFromType<SchemaTools>("SchemaTools");
-    kernel.Plugins.AddFromType<PriorClaimsTools>("PriorClaimsTools");
-    kernel.Plugins.AddFromType<PolicyTools>("PolicyTools");
-
-    return kernel.Build();
-});
 
 builder.Services.AddSingleton<CompletenessAgent>();
 builder.Services.AddSingleton<CanonicalizeAgent>();
@@ -103,3 +82,52 @@ builder.Services.AddSingleton<FraudAgent>();
 builder.Services.AddSingleton<CommsAgent>();
 
 builder.Build().Run();
+
+static async Task AddAIServices(FunctionsApplicationBuilder builder)
+{
+    // MCP tools
+    string mcpServerUrl = Environment.GetEnvironmentVariable("MCP_SERVER_URL") ??
+                            throw new InvalidOperationException("MCP_SERVER_URL environment variable is not set.");
+    var clientTransport = new SseClientTransport(new SseClientTransportOptions
+    {
+        Endpoint = new Uri(mcpServerUrl),
+        TransportMode = HttpTransportMode.AutoDetect
+    });
+    var mcpClient = await McpClientFactory.CreateAsync(clientTransport);
+    var mcpTools = await mcpClient.ListToolsAsync();
+
+    builder.Services.AddSingleton<Kernel>(sp =>
+    {
+        var client = sp.GetRequiredService<AzureOpenAIClient>();
+
+        var kernelBuilder = Kernel.CreateBuilder();
+
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME")
+                            ?? throw new InvalidOperationException("AZURE_OPENAI_DEPLOYMENT_NAME environment variable is not set.");
+
+
+        kernelBuilder.AddAzureOpenAIChatCompletion(
+            deploymentName: deploymentName,
+            serviceId: deploymentName,
+            azureOpenAIClient: client
+        );
+
+        kernelBuilder.AddAzureOpenAIChatCompletion(
+            deploymentName: "gpt-4.1",
+            serviceId: "gpt-4.1",
+            azureOpenAIClient: client
+        );
+
+        // Set up MCP tools
+        kernelBuilder.Plugins.AddFromFunctions("ClaimHistory", mcpTools.Select(aiFunction => aiFunction.AsKernelFunction()));
+
+        // TODO: Add plugins here
+        kernelBuilder.Plugins.AddFromType<SchemaTools>("SchemaTools");
+        kernelBuilder.Plugins.AddFromType<PolicyTools>("PolicyTools");
+        // kernelBuilder.Plugins.AddFromType<PriorClaimsTools>("PriorClaimsTools");
+
+
+        return kernelBuilder.Build();
+    });
+}
+

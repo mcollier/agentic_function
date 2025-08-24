@@ -5,6 +5,7 @@ using AgentFunction.Functions.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
@@ -68,11 +69,12 @@ public sealed class CoverageAgent : AgentBase<CanonicalClaim, CoverageResult>
 
             ### Output
             Return **ONLY** the CoverageResult as strict JSON with exact property names. No markdown, no commentary.
-           ",
-               arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-               {
-                   FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-               }))
+           "
+            //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
+            //    {
+            //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+            //    })
+               )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -90,7 +92,7 @@ public sealed class CoverageAgent : AgentBase<CanonicalClaim, CoverageResult>
         //                     We do not cover losses that occur during commercial use...
         //                     """; // This should be provided or fetched from a relevant source
 
-        var content = new ChatMessageContent(
+        var userMessage = new ChatMessageContent(
             role: AuthorRole.User,
             content: $"Analyze this claim JSON to determine if the claim is covered by the policy.\n" +
                      $"Look up the policy details using the policy ID." +
@@ -99,9 +101,9 @@ public sealed class CoverageAgent : AgentBase<CanonicalClaim, CoverageResult>
                      $"Claim JSON: {claimJson}\n"
         );
 
-        var execSettings = new OpenAIPromptExecutionSettings
+        var execSettings = new AzureOpenAIPromptExecutionSettings
         {
-            ModelId = "gpt-4o-mini",
+            ServiceId = "gpt-4o-mini",
             Temperature = 0.2f,
             TopP = 1.0f,
             // ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
@@ -110,13 +112,17 @@ public sealed class CoverageAgent : AgentBase<CanonicalClaim, CoverageResult>
             ResponseFormat = "json_object"
         };
 
-        var coverage = await InvokeAndDeserializeAsync<CoverageResult>(content, null, execSettings, ct).ConfigureAwait(false);
+        var coverage = await InvokeAndDeserializeAsync<CoverageResult>(
+            userMessage,
+            customDeserializer: null,
+            execSettings: execSettings,
+            cancellationToken: ct).ConfigureAwait(false);
 
         return coverage ?? new CoverageResult(0, false, [], "");
     }
 
-    private static readonly JsonSerializerOptions s_writeOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
+    // private static readonly JsonSerializerOptions s_writeOptions = new()
+    // {
+    //     PropertyNameCaseInsensitive = true
+    // };
 }

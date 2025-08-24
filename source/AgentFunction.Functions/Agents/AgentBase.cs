@@ -33,6 +33,7 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
             Name = name,
             Instructions = instructions,
             Kernel = kernel,
+            // Arguments = arguments 
             Arguments = arguments ?? new KernelArguments(new OpenAIPromptExecutionSettings()
             {
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
@@ -52,16 +53,24 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
 
     protected async Task<AgentResponse> InvokeAgentAsync(ChatMessageContent message, OpenAIPromptExecutionSettings? execSettings = null, CancellationToken ct = default)
     {
-        var settings = execSettings ?? new OpenAIPromptExecutionSettings()
-        {
-            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-        };
+        // var settings = execSettings ?? new OpenAIPromptExecutionSettings()
+        // {
+        //     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+        // };
 
         var options = new AgentInvokeOptions()
         {
-            KernelArguments = new KernelArguments(settings),
-            Kernel = _kernel
+            Kernel = _kernel,
+            KernelArguments = execSettings is not null
+                ? new KernelArguments(execSettings)
+                : _agent.Arguments
         };
+
+        // var options = new AgentInvokeOptions()
+        // {
+        //     KernelArguments = new KernelArguments(settings),
+        //     Kernel = _kernel
+        // };
 
         ChatMessageContent? chatMessageContent = null;
         try
@@ -87,6 +96,11 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
         if (chatMessageContent?.Metadata != null && chatMessageContent.Metadata.TryGetValue("Usage", out var u))
         {
             usage = u;
+
+            OpenAI.Chat.ChatTokenUsage? usageDetails = usage as OpenAI.Chat.ChatTokenUsage;
+
+            _logger.LogInformation("Agent `{AuthorName}` with model `{ModelId}` used {InputTokenCount} input tokens and {OutputTokenCount} output tokens.",
+            chatMessageContent.AuthorName, chatMessageContent.ModelId, usageDetails?.InputTokenCount, usageDetails?.OutputTokenCount);
         }
 
         return new AgentResponse(chatMessageContent?.Content, usage, chatMessageContent);
@@ -94,9 +108,9 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
 
     protected async Task<TResult?> InvokeAndDeserializeAsync<TResult>(ChatMessageContent message, Func<string, TResult?>? customDeserializer = null,
                                     OpenAIPromptExecutionSettings? execSettings = null,
-                                    CancellationToken ct = default)
+                                    CancellationToken cancellationToken = default)
     {
-        var resp = await InvokeAgentAsync(message, execSettings, ct).ConfigureAwait(false);
+        var resp = await InvokeAgentAsync(message, execSettings, cancellationToken).ConfigureAwait(false);
         OnRawResponse(resp.RawContent, resp.Usage);
 
         var raw = resp.RawContent;
@@ -105,6 +119,17 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
             _logger.LogWarning("Agent returned empty response.");
             return default;
         }
+
+        _logger.LogDebug("Raw agent response: {Raw}", raw);
+
+        // strip code fences if present ...
+        if (raw.StartsWith("```"))
+        {
+            var s = raw.IndexOf('\n'); var e = raw.LastIndexOf("```", StringComparison.Ordinal);
+            if (s > 0 && e > s) raw = raw[(s + 1)..e].Trim();
+        }
+
+        _logger.LogDebug("Cleaned agent response: {Raw}", raw);
 
         try
         {

@@ -27,8 +27,5 @@ public class FinalizeActivity(BlobServiceClient blobServiceClient)
 
         var communicationsBlobClient = containerClient.GetBlobClient($"{basePath}/customer_communication.json");
         await communicationsBlobClient.UploadAsync(BinaryData.FromObjectAsJson(input.Communications), overwrite: true);
-
-        // await client.UploadBlobAsync($"{basePath}/report.json", BinaryData.FromObjectAsJson(input));
-        // await client.UploadBlobAsync($"{basePath}/customer_communication.json", BinaryData.FromObjectAsJson(input.Communications));
     }
 }

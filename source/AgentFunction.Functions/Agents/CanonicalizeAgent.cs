@@ -1,11 +1,9 @@
-using System.Text.Json;
-
 using AgentFunction.Functions.Models;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
@@ -46,27 +44,36 @@ public sealed class CanonicalizeAgent : AgentBase<FnolClaim, CanonicalClaim>
             - Prefer precision; if unsure, leave a field null rather than guessing.
 
             ### Output
-            Return **ONLY** the CanonicalClaim as strict JSON with the exact property names above. No markdown, no commentary.",
-               arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-               {
-                   FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-               }))
+            Return **ONLY** the CanonicalClaim as strict JSON with the exact property names above. No markdown, no commentary."
+               //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
+               //    {
+               //        ModelId = "gpt-4o-mini",
+               //        Temperature = 0.2f,
+               //        TopP = 1.0f,
+               //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+               //        ResponseFormat = "json_object"
+               //    })
+               )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public override async Task<CanonicalClaim> ProcessAsync(FnolClaim input, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(input, nameof(input));
+
+        _typedLogger.LogInformation("CanonicalizeAgent: starting processing for claim {ClaimId}", input.ClaimId);
+
         var fnolJson = SerializeInput(input);
 
-        var content = new ChatMessageContent(
+        var userMessage = new ChatMessageContent(
             role: AuthorRole.User,
             content: $"Canonicalize this FNOL into CanonicalClaim JSON as per instructions.\nRAW FNOL:\n```json\n{fnolJson}\n```"
         );
 
-        var execSettings = new OpenAIPromptExecutionSettings
+        var execSettings = new AzureOpenAIPromptExecutionSettings
         {
-            ModelId = "gpt-4o-mini",
+            ServiceId = "gpt-4o-mini",
             Temperature = 0.2f,
             TopP = 1.0f,
             // ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
@@ -74,8 +81,12 @@ public sealed class CanonicalizeAgent : AgentBase<FnolClaim, CanonicalClaim>
             ResponseFormat = "json_object"
         };
 
-        var canonical = await InvokeAndDeserializeAsync<CanonicalClaim>(content, null, execSettings, ct).ConfigureAwait(false);
-            // raw => JsonSerializer.Deserialize<CanonicalClaim>(raw, s_writeOptions), execSettings, ct).ConfigureAwait(false);
+        var canonical = await InvokeAndDeserializeAsync<CanonicalClaim>(
+            userMessage,
+            customDeserializer: null,
+            execSettings: execSettings,
+            cancellationToken: ct).ConfigureAwait(false);
+        // raw => JsonSerializer.Deserialize<CanonicalClaim>(raw, s_writeOptions), execSettings, ct).ConfigureAwait(false);
 
         if (canonical is null)
         {
@@ -93,8 +104,8 @@ public sealed class CanonicalizeAgent : AgentBase<FnolClaim, CanonicalClaim>
         return canonical;
     }
 
-    private static readonly JsonSerializerOptions s_writeOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
+    // private static readonly JsonSerializerOptions s_writeOptions = new()
+    // {
+    //     PropertyNameCaseInsensitive = true
+    // };
 }

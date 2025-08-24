@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../source/AgentFunction.ApiService/AgentFunction.ApiService.csproj" />
+    <ProjectReference Include="../source/AgentFunction.PolicyApi/AgentFunction.PolicyApi.csproj" />
     <ProjectReference Include="../source/AgentFunction.Models/AgentFunction.Models.csproj" />
   </ItemGroup>
 

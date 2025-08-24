@@ -14,6 +14,8 @@ public class CanonicalizeActivity(CanonicalizeAgent canonicalizeAgent)
     {
         ILogger logger = context.GetLogger(nameof(RunCanonicalize));
 
+        logger.LogInformation("Invoking CanonicalizeAgent to process claim {ClaimId}", claim.ClaimId);
+
         return await canonicalizeAgent.ProcessAsync(claim);
     }
 }

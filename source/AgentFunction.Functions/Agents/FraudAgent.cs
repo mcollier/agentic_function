@@ -1,11 +1,9 @@
-using System.Text.Json;
-
 using AgentFunction.Functions.Models;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
@@ -112,11 +110,16 @@ public sealed class FraudAgent : AgentBase<CanonicalClaim, FraudResult>
                             }
 
 
-                           """,
-               arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-               {
-                   FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-               }))
+                           """
+            //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
+            //    {
+            //        ModelId = "gpt-4o-mini",
+            //        Temperature = 0.2f,
+            //        TopP = 1.0f,
+            //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+            //        ResponseFormat = "json_object"
+            //    })
+               )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
@@ -129,15 +132,15 @@ public sealed class FraudAgent : AgentBase<CanonicalClaim, FraudResult>
 
         var claimJson = SerializeInput(input);
 
-        var content = new ChatMessageContent(
+        var userMessage = new ChatMessageContent(
             role: AuthorRole.User,
             content: "Evaluate fraud risk for the CanonicalClaim. Use tools if needed and return STRICT JSON per schema.\n" +
                      $"CLAIM: \n ```json\n{claimJson}\n```"
         );
 
-        var execSettings = new OpenAIPromptExecutionSettings
+        var execSettings = new AzureOpenAIPromptExecutionSettings
         {
-            ModelId = "gpt-4o-mini",
+            ServiceId = "gpt-4o-mini",
             Temperature = 0.2f,
             TopP = 1.0f,
             // ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
@@ -145,7 +148,11 @@ public sealed class FraudAgent : AgentBase<CanonicalClaim, FraudResult>
             ResponseFormat = "json_object"
         };
 
-        var result = await InvokeAndDeserializeAsync<FraudResult>(content, null, execSettings, ct).ConfigureAwait(false);
+        var result = await InvokeAndDeserializeAsync<FraudResult>(
+            userMessage,
+            customDeserializer: null,
+            execSettings: execSettings,
+            cancellationToken: ct).ConfigureAwait(false);
 
         return result ?? new FraudResult(0, Array.Empty<FraudSignal>(), string.Empty, false);
     }

@@ -15,6 +15,8 @@ public class FraudActivity(FraudAgent fraudAgent)
     {
         ILogger logger = context.GetLogger(nameof(RunFraud));
 
+        logger.LogInformation("Invoking FraudAgent to process claim {ClaimId}", claim.ClaimId);
+
         return await fraudAgent.ProcessAsync(claim);
     }
 }

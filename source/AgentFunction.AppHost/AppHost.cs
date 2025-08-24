@@ -28,31 +28,25 @@ var azureOpenAi = builder.AddAzureOpenAI(Shared.Services.AzureOpenAI)
 // Existing Azure Communication Service connection string
 var azureCommunicationService = builder.AddConnectionString("AzureCommunicationServiceConnectionString");
 
-var apiService = builder.AddProject<Projects.ApiService>(Shared.Services.ApiService)
+var policyApi = builder.AddProject<Projects.PolicyApi>(Shared.Services.PolicyApi)
     .WithHttpHealthCheck("/health");
 
-// var claimsAgent = builder.AddProject<Projects.ClaimsAgentService>(Shared.Services.ClaimsAgentService)
-//     .WithEnvironment("MCP_SERVER_URL", apiService.GetEndpoint("http"))
-//     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", existingAzureOpenAIModelName)
-//     .WithHttpHealthCheck("/health")
-//     .WithReference(azureOpenAi);
 
 var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shared.Services.FunctionsService)
 .WithHostStorage(storage)
-// .WithReference(claimsAgent)
-.WithReference(apiService)
+.WithReference(policyApi)
 .WithReference(queues)
 .WithReference(blobs)
 .WithReference(azureCommunicationService)
 .WithReference(azureOpenAi)
 .WaitFor(storage)
-// .WaitFor(claimsAgent)
-.WaitFor(apiService)
+.WaitFor(policyApi)
 .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", existingAzureOpenAIModelName)
 .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", azureDurableTaskSchedulerConnectionString)
 .WithEnvironment("TASKHUB_NAME", azureDurableTaskSchedulerTaskHubName)
 .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
-.WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
+// .WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
+.WithEnvironment("MCP_SERVER_URL", policyApi.GetEndpoint("http"))
 .WithExternalHttpEndpoints();
 
 // Only use the Durable Task Scheduler in run mode.

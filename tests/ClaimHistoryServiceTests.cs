@@ -1,7 +1,9 @@
 using AgentFunction.ApiService.Services;
-using AgentFunction.Models;
 
-namespace AgentFunction.Tests.Services;
+using Xunit;
+
+namespace AgentFunction.Tests;
+
 
 public class ClaimHistoryServiceTests
 {
@@ -16,23 +18,23 @@ public class ClaimHistoryServiceTests
     public async Task GetClaimsByPolicyIdAsync_ValidPolicyId_ReturnsMatchingClaims()
     {
         // Setup
-        const string policyId = "POL-123456789";
+        const string policyId = "P-98765";
 
         // Execution
         var result = await _service.GetClaimsByPolicyIdAsync(policyId);
 
         // Verification
         Assert.NotNull(result);
-        Assert.Equal(2, result.Count());
-        Assert.All(result, claim => Assert.Equal(policyId, claim.PolicyNumber));
+        Assert.Equal(3, result.Count());
+        Assert.All(result, claim => Assert.Equal(policyId, claim.PolicyId));
     }
 
     [Fact(DisplayName = "GetClaimsByPolicyIdAsync with case insensitive policy ID returns matching claims")]
     public async Task GetClaimsByPolicyIdAsync_CaseInsensitivePolicyId_ReturnsMatchingClaims()
     {
         // Setup
-        const string policyIdLowerCase = "pol-555555555";
-        const string expectedPolicyId = "POL-555555555";
+        const string policyIdLowerCase = "p-98765";
+        const string expectedPolicyId = "P-98765";
 
         // Execution
         var result = await _service.GetClaimsByPolicyIdAsync(policyIdLowerCase);
@@ -40,14 +42,14 @@ public class ClaimHistoryServiceTests
         // Verification
         Assert.NotNull(result);
         Assert.Equal(3, result.Count());
-        Assert.All(result, claim => Assert.Equal(expectedPolicyId, claim.PolicyNumber));
+        Assert.All(result, claim => Assert.Equal(expectedPolicyId, claim.PolicyId));
     }
 
     [Fact(DisplayName = "GetClaimsByPolicyIdAsync with non-existent policy ID returns empty collection")]
     public async Task GetClaimsByPolicyIdAsync_NonExistentPolicyId_ReturnsEmptyCollection()
     {
         // Setup
-        const string nonExistentPolicyId = "POL-999999999";
+        const string nonExistentPolicyId = "P-99999";
 
         // Execution
         var result = await _service.GetClaimsByPolicyIdAsync(nonExistentPolicyId);
@@ -83,7 +85,7 @@ public class ClaimHistoryServiceTests
     public async Task GetClaimsByPolicyIdAsync_ValidPolicyId_ReturnsClaimsOrderedByDateDescending()
     {
         // Setup - policy with multiple claims
-        const string policyId = "POL-555555555";
+        const string policyId = "P-98765";
 
         // Execution
         var result = await _service.GetClaimsByPolicyIdAsync(policyId);
@@ -92,11 +94,11 @@ public class ClaimHistoryServiceTests
         Assert.NotNull(result);
         var claimsList = result.ToList();
         Assert.True(claimsList.Count > 1);
-        
+
         for (int i = 0; i < claimsList.Count - 1; i++)
         {
-            Assert.True(claimsList[i].DateOfAccident >= claimsList[i + 1].DateOfAccident,
-                "Claims should be ordered by accident date descending");
+            Assert.True(claimsList[i].LossDate >= claimsList[i + 1].LossDate,
+                "Claims should be ordered by loss date descending");
         }
     }
 }

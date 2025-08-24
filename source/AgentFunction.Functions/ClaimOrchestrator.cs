@@ -31,7 +31,7 @@ public static class ClaimOrchestrator
             logger.LogWarning("FNOL claim is incomplete. Missing fields: {MissingFields}", string.Join(", ", completenessResult.MissingFields));
 
             // Handle incomplete claim logic here, e.g., notify user or halt processing
-            return new ClaimAnalysisReport
+            var incompleteReport = new ClaimAnalysisReport
             {
                 ClaimId = fnolClaim.ClaimId ?? "unknown",
                 Raw = fnolClaim,
@@ -41,6 +41,10 @@ public static class ClaimOrchestrator
                 Fraud = null!,
                 Timeline = null!
             };
+
+            await context.CallActivityAsync(nameof(FinalizeActivity.FinalizeClaim), incompleteReport);
+
+            return incompleteReport;
         }
 
         // 2) Canonicalize RAW → Canonical
@@ -65,7 +69,7 @@ public static class ClaimOrchestrator
                 DateTime dueTime = context.CurrentUtcDateTime.AddMinutes(5); // For demo/testing, use 5 minutes
                 Task durableTimeout = context.CreateTimer(dueTime, timeoutCts.Token);
 
-                Task<bool> fraudReviewTask= context.WaitForExternalEvent<bool>("FraudReviewCompleted");
+                Task<bool> fraudReviewTask = context.WaitForExternalEvent<bool>("FraudReviewCompleted");
 
                 var winner = await Task.WhenAny(fraudReviewTask, durableTimeout);
 
@@ -97,7 +101,7 @@ public static class ClaimOrchestrator
             Canonical = canonical,
             Coverage = coverageTask.Result,
             Fraud = fraudTask.Result,
-            Timeline = null // Haven't implemented timeline processing yet
+            Timeline = null! // Haven't implemented timeline processing yet
         };
 
         // 5) Send communications

@@ -1,4 +1,4 @@
-using AgentFunction.Models.Dtos;
+using AgentFunction.ApiService.Models;
 
 namespace AgentFunction.ApiService.Services;
 
@@ -12,5 +12,5 @@ public interface IClaimHistoryService
     /// </summary>
     /// <param name="policyId">The policy ID to search for (case-insensitive)</param>
     /// <returns>A collection of claims for the specified policy. Returns empty collection if no matches found.</returns>
-    Task<IEnumerable<ClaimDto>> GetClaimsByPolicyIdAsync(string policyId);
+    Task<IEnumerable<ClaimHistory>> GetClaimsByPolicyIdAsync(string policyId);
 }

@@ -17,6 +17,8 @@ public class CommunicationActivity(CommsAgent commsAgent, EmailClient emailClien
     {
         ILogger logger = context.GetLogger(nameof(RunComms));
 
+        logger.LogInformation("Invoking CommsAgent to process claim {ClaimId}", report.ClaimId);
+
         return await commsAgent.ProcessAsync(report);
     }
 
@@ -26,6 +28,8 @@ public class CommunicationActivity(CommsAgent commsAgent, EmailClient emailClien
         FunctionContext context)
     {
         ILogger logger = context.GetLogger(nameof(Send));
+
+        logger.LogInformation("Sending email to {RecipientEmail} for claim.", comms.Email.RecipientEmailAddress);
 
         string senderEmailAddress = Environment.GetEnvironmentVariable("SENDER_EMAIL_ADDRESS")
             ?? throw new InvalidOperationException("Sender email address is not set.");
