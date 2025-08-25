@@ -9,55 +9,52 @@ using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
-public sealed class CommsAgent : AgentBase<ClaimAnalysisReport, CommsResult>
+public sealed class CommsAgent(Kernel kernel, ILogger<CommsAgent> logger) :
+                    AgentBase<ClaimAnalysisReport, CommsResult>(
+                        kernel,
+                        logger,
+                        name: "CommsAgent",
+                        instructions: """
+                                You are an AI assistant that generates customer communications based on a auto insurance claim analysis report.
+                                
+                                ## GOAL
+                                Generate clear, empathetic, and compliant customer-facing messages based on the claim’s status and analysis.
+                                Produce variants for email, SMS, and in-app.
+
+                                ## INPUTS
+                                - ClaimAnalysisReport: includes FnolClaim, CompletenessResult, CanonicalClaim, CoverageResult, FraudResult.
+
+                                Given a claim analysis report, generate:
+                                1) An email to the customer with subject, body, recipient email address (the insured party's email), and recipient name (the insured party's name).
+                                2) A concise SMS message.
+                                
+                                ## OUTPUT (STRICT JSON, no markdown)
+                                    {
+                                        ""email"": { ""subject"": ""string"", ""body"": ""valid HTML body"", ""recipientEmailAddress"": ""string"", "recipientName"": ""string"" },
+                                        ""sms"": ""string <= 320 chars""
+                                    }
+                            
+                                ## TONE and STYLE
+                                - Friendly, concise, 8th-grade reading level.
+                                - Avoid jargon; explain next steps plainly.
+                                - Respect privacy; do not include sensitive data in SMS.
+                                - For email HTML, use simple tags (<p>, <ul>, <li>, <strong>).
+                                - Use a bulleted list for important details.
+                                - Use bold <strong> tags for emphasis of important items.
+                                - If a field is missing, omit that section rather than guessing.
+
+                                ## POLICY GUARDRAILS
+                                - If CoverageResult.covered == false, avoid blame; provide next steps and contact options.
+                                - If CoverageResult.covered == true, acknowledge coverage and include the deductible amount (if applicable).
+                                - If CompletenessResult has missingFields, list max 3 actionable items.
+                                - If FraudResult.score >= 0.6, avoid the term ""fraud""; say ""additional review"" and extend timelines.
+                                - Never commit to payout amounts.
+                                - Always include a support path (1-800-555-5555 and https://www.censurance.com).
+
+                            """
+                            )
 {
-    private readonly ILogger<CommsAgent> _typedLogger;
-
-    public CommsAgent(Kernel kernel, ILogger<CommsAgent> logger)
-        : base(kernel, logger,
-               name: "CommsAgent",
-               instructions: """
-                You are an AI assistant that generates customer communications based on a auto insurance claim analysis report.
-                
-                ## GOAL
-                Generate clear, empathetic, and compliant customer-facing messages based on the claim’s status and analysis.
-                Produce variants for email, SMS, and in-app.
-
-                ## INPUTS
-                - ClaimAnalysisReport: includes FnolClaim, CompletenessResult, CanonicalClaim, CoverageResult, FraudResult.
-
-                Given a claim analysis report, generate:
-                1) An email to the customer with subject, body, recipient email address (the insured party's email), and recipient name (the insured party's name).
-                2) A concise SMS message.
-                
-                ## OUTPUT (STRICT JSON, no markdown)
-                    {
-                        ""email"": { ""subject"": ""string"", ""body"": ""valid HTML body"", ""recipientEmailAddress"": ""string"", "recipientName"": ""string"" },
-                        ""sms"": ""string <= 320 chars""
-                    }
-             
-                ## TONE and STYLE
-                - Friendly, concise, 8th-grade reading level.
-                - Avoid jargon; explain next steps plainly.
-                - Respect privacy; do not include sensitive data in SMS.
-                - For email HTML, use simple tags (<p>, <ul>, <li>, <strong>).
-                - Use a bulleted list for important details.
-                - Use bold <strong> tags for emphasis of important items.
-                - If a field is missing, omit that section rather than guessing.
-
-                ## POLICY GUARDRAILS
-                - If CoverageResult.covered == false, avoid blame; provide next steps and contact options.
-                - If CoverageResult.covered == true, acknowledge coverage and include the deductible amount (if applicable).
-                - If CompletenessResult has missingFields, list max 3 actionable items.
-                - If FraudResult.score >= 0.6, avoid the term ""fraud""; say ""additional review"" and extend timelines.
-                - Never commit to payout amounts.
-                - Always include a support path (1-800-555-5555 and https://www.censurance.com).
-
-             """
-               )
-    {
-        _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ILogger<CommsAgent> _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public override async Task<CommsResult> ProcessAsync(ClaimAnalysisReport input, CancellationToken ct = default)
     {

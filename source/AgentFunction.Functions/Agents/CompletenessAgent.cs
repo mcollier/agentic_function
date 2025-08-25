@@ -8,41 +8,28 @@ using Microsoft.SemanticKernel.ChatCompletion;
 
 namespace AgentFunction.Functions.Agents;
 
-public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
-{
-    private readonly ILogger<CompletenessAgent> _typedLogger;
-    /*
-    Output STRICT JSON ONLY:
-                {
-                    ""missingFields"": [""/parties/0/contact/phone""],
-                    ""clarifyingQuestions"": [""What is the phone number for the first party's contact?"" ]
-                }
- Tools:
-            - SchemaTools.GetFnolSchemaAsync() to fetch the schema.
-                - SchemaTools.GetEnumValues(field) for canonical enums.
-                */
-    public CompletenessAgent(Kernel kernel, ILogger<CompletenessAgent> logger)
-        : base(kernel,
-               logger,
-               name: "CompletenessAgent",
-               instructions: @"You are an agent that checks the completeness of insurance claims.
-            
-            Goal:
-            - Inspect a FNOL JSON payload.
-            - Identify missing or inconsistent fields vs. the FNOL schema.
-            - Generate clarifying questions for the customer to fill in missing information.
-            - Use JSON Pointer paths to indicate missing fields, e.g., '/parties/0/contact/phone'.
+public sealed class CompletenessAgent(Kernel kernel, ILogger<CompletenessAgent> logger) :
+                    AgentBase<FnolClaim, CompletenessResult>(
+                        kernel,
+                        logger,
+                        name: "CompletenessAgent",
+                        instructions: @"You are an agent that checks the completeness of insurance claims.
+                            
+                            Goal:
+                            - Inspect a FNOL JSON payload.
+                            - Identify missing or inconsistent fields vs. the FNOL schema.
+                            - Generate clarifying questions for the customer to fill in missing information.
+                            - Use JSON Pointer paths to indicate missing fields, e.g., '/parties/0/contact/phone'.
 
-            Output STRICT JSON ONLY:
-                {
-                    ""missingFields"": [""/parties/0/contact/phone""],
-                    ""clarifyingQuestions"": [""What is the phone number for the first party's contact?"" ]
-                }
-            "
-               )
-    {
-        _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+                            Output STRICT JSON ONLY:
+                                {
+                                    ""missingFields"": [""/parties/0/contact/phone""],
+                                    ""clarifyingQuestions"": [""What is the phone number for the first party's contact?"" ]
+                                }
+                            "
+                            )
+{
+    private readonly ILogger<CompletenessAgent> _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public override async Task<CompletenessResult> ProcessAsync(FnolClaim input, CancellationToken ct = default)
     {
