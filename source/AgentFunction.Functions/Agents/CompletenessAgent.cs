@@ -5,7 +5,6 @@ using AgentFunction.Functions.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
@@ -40,14 +39,6 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
                     ""clarifyingQuestions"": [""What is the phone number for the first party's contact?"" ]
                 }
             "
-               //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-               //    {
-               //        ModelId = "gpt-4o-mini",
-               //        Temperature = 0.2f,
-               //        TopP = 1.0f,
-               //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-               //        ResponseFormat = "json_object"
-               //    })
                )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -70,24 +61,11 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
                      $"```json\n{fnolJson}\n```"
         );
 
-        var execSettings = new AzureOpenAIPromptExecutionSettings
-        {
-            ServiceId = "gpt-4o-mini",
-            Temperature = 0.2f,
-            TopP = 1.0f,
-            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-            ResponseFormat = "json_object"
-            // ResponseFormat = typeof(CompletenessResult)
-        };
-
         try
         {
             var result = await InvokeAndDeserializeAsync<CompletenessResult>(
                 userMessage,
-                customDeserializer: null,
-                execSettings: execSettings,
                 cancellationToken: ct).ConfigureAwait(false);
-            // raw => JsonSerializer.Deserialize<CompletenessResult>(raw, s_writeOptions), execSettings, ct).ConfigureAwait(false);
 
             return result ?? new CompletenessResult([], []);
         }
@@ -97,9 +75,4 @@ public sealed class CompletenessAgent : AgentBase<FnolClaim, CompletenessResult>
             return new CompletenessResult([], []);
         }
     }
-
-    private static readonly JsonSerializerOptions s_writeOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
 }

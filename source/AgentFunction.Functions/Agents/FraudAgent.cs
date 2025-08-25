@@ -3,8 +3,6 @@ using AgentFunction.Functions.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
@@ -108,17 +106,7 @@ public sealed class FraudAgent : AgentBase<CanonicalClaim, FraudResult>
                             "rationale":"Repeat vendor + short-window claims raise risk; distance anomaly reinforces suspicion.",
                             "safeToAutoPay": false
                             }
-
-
                            """
-            //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-            //    {
-            //        ModelId = "gpt-4o-mini",
-            //        Temperature = 0.2f,
-            //        TopP = 1.0f,
-            //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-            //        ResponseFormat = "json_object"
-            //    })
                )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -138,20 +126,8 @@ public sealed class FraudAgent : AgentBase<CanonicalClaim, FraudResult>
                      $"CLAIM: \n ```json\n{claimJson}\n```"
         );
 
-        var execSettings = new AzureOpenAIPromptExecutionSettings
-        {
-            ServiceId = "gpt-4o-mini",
-            Temperature = 0.2f,
-            TopP = 1.0f,
-            // ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-            ResponseFormat = "json_object"
-        };
-
         var result = await InvokeAndDeserializeAsync<FraudResult>(
             userMessage,
-            customDeserializer: null,
-            execSettings: execSettings,
             cancellationToken: ct).ConfigureAwait(false);
 
         return result ?? new FraudResult(0, Array.Empty<FraudSignal>(), string.Empty, false);

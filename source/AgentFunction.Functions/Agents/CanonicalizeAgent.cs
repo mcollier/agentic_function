@@ -45,14 +45,6 @@ public sealed class CanonicalizeAgent : AgentBase<FnolClaim, CanonicalClaim>
 
             ### Output
             Return **ONLY** the CanonicalClaim as strict JSON with the exact property names above. No markdown, no commentary."
-               //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-               //    {
-               //        ModelId = "gpt-4o-mini",
-               //        Temperature = 0.2f,
-               //        TopP = 1.0f,
-               //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-               //        ResponseFormat = "json_object"
-               //    })
                )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -71,22 +63,9 @@ public sealed class CanonicalizeAgent : AgentBase<FnolClaim, CanonicalClaim>
             content: $"Canonicalize this FNOL into CanonicalClaim JSON as per instructions.\nRAW FNOL:\n```json\n{fnolJson}\n```"
         );
 
-        var execSettings = new AzureOpenAIPromptExecutionSettings
-        {
-            ServiceId = "gpt-4o-mini",
-            Temperature = 0.2f,
-            TopP = 1.0f,
-            // ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-            ResponseFormat = "json_object"
-        };
-
         var canonical = await InvokeAndDeserializeAsync<CanonicalClaim>(
             userMessage,
-            customDeserializer: null,
-            execSettings: execSettings,
             cancellationToken: ct).ConfigureAwait(false);
-        // raw => JsonSerializer.Deserialize<CanonicalClaim>(raw, s_writeOptions), execSettings, ct).ConfigureAwait(false);
 
         if (canonical is null)
         {
@@ -103,9 +82,4 @@ public sealed class CanonicalizeAgent : AgentBase<FnolClaim, CanonicalClaim>
 
         return canonical;
     }
-
-    // private static readonly JsonSerializerOptions s_writeOptions = new()
-    // {
-    //     PropertyNameCaseInsensitive = true
-    // };
 }

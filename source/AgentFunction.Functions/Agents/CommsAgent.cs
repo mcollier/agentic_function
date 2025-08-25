@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
@@ -55,15 +54,6 @@ public sealed class CommsAgent : AgentBase<ClaimAnalysisReport, CommsResult>
                 - Always include a support path (1-800-555-5555 and https://www.censurance.com).
 
              """
-            //    arguments: new KernelArguments(new OpenAIPromptExecutionSettings()
-            //    {
-            //        ModelId = "gpt-4.1",
-            //        MaxTokens = 800,
-            //        Temperature = 0.7f,
-            //        TopP = 1.0f,
-            //        FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-            //        ResponseFormat = "json_object"
-            //    })
                )
     {
         _typedLogger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -92,16 +82,6 @@ public sealed class CommsAgent : AgentBase<ClaimAnalysisReport, CommsResult>
                 ResponseFormat = "json_object"
             };
 
-            // var execSettings = new OpenAIPromptExecutionSettings
-            // {
-            //     ModelId = "gpt-4.1",
-            //     Temperature = 0.2f,
-            //     TopP = 1.0f,
-            //     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
-            //     ResponseFormat = "json_object"
-            //     // ResponseFormat = typeof(CompletenessResult)
-            // };
-        
             var result = await InvokeAndDeserializeAsync<CommsResult>(
                 userMessage,
                 customDeserializer: null,

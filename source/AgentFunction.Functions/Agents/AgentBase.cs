@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
@@ -16,7 +17,51 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
     protected readonly JsonSerializerOptions _jsonOptions;
 
     protected AgentBase(Kernel kernel, ILogger logger,
-                        string name, string instructions, KernelArguments? arguments = null)
+                        string name, string template,
+                        string templateName)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
+        ArgumentException.ThrowIfNullOrEmpty(template, nameof(template));
+        ArgumentException.ThrowIfNullOrEmpty(templateName, nameof(templateName));
+
+        _kernel = kernel ?? throw new ArgumentNullException(nameof(kernel));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            PropertyNameCaseInsensitive = true
+        };
+
+        if (!File.Exists(template))
+        {
+            throw new FileNotFoundException($"Template file not found: {template}");
+        }
+
+        string templateYaml = File.ReadAllText(template);
+        var templateFactory = new KernelPromptTemplateFactory();
+        var promptTemplateConfig = new PromptTemplateConfig()
+        {
+            Template = templateYaml,
+            TemplateFormat = "semantic-kernel",
+            Name = templateName
+        };
+
+        _agent = new(promptTemplateConfig, templateFactory)
+        {
+            Kernel = kernel,
+            Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings()
+            {
+                ServiceId = "gpt-4o-mini",
+                ResponseFormat = "json_object",
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+            })
+        };
+    }
+    protected AgentBase(Kernel kernel, ILogger logger,
+                        string name, string instructions,
+                        KernelArguments? arguments = null)
     {
         _kernel = kernel ?? throw new ArgumentNullException(nameof(kernel));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -33,9 +78,12 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
             Name = name,
             Instructions = instructions,
             Kernel = kernel,
-            // Arguments = arguments 
-            Arguments = arguments ?? new KernelArguments(new OpenAIPromptExecutionSettings()
+            Arguments = arguments ?? new KernelArguments(new AzureOpenAIPromptExecutionSettings()
             {
+                ServiceId = "gpt-4o-mini",
+                Temperature = 0.2f,
+                TopP = 1.0f,
+                ResponseFormat = "json_object",
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             })
         };
@@ -53,11 +101,6 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
 
     protected async Task<AgentResponse> InvokeAgentAsync(ChatMessageContent message, OpenAIPromptExecutionSettings? execSettings = null, CancellationToken ct = default)
     {
-        // var settings = execSettings ?? new OpenAIPromptExecutionSettings()
-        // {
-        //     FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
-        // };
-
         var options = new AgentInvokeOptions()
         {
             Kernel = _kernel,
@@ -66,15 +109,14 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
                 : _agent.Arguments
         };
 
-        // var options = new AgentInvokeOptions()
-        // {
-        //     KernelArguments = new KernelArguments(settings),
-        //     Kernel = _kernel
-        // };
-
         ChatMessageContent? chatMessageContent = null;
         try
         {
+            // Log the agent name and first part of instructions.
+            _logger.LogInformation("Invoking agent `{AgentName}` with instructions `{Instructions}`.",
+                _agent.Name,
+                _agent.Instructions?[..80]);
+
             IAsyncEnumerable<AgentResponseItem<ChatMessageContent>> response =
                 _agent.InvokeAsync(message: message,
                                    options: options,
@@ -104,6 +146,12 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
         }
 
         return new AgentResponse(chatMessageContent?.Content, usage, chatMessageContent);
+    }
+
+    protected async Task<TResult?> InvokeAndDeserializeAsync<TResult>(ChatMessageContent message,
+                                        CancellationToken cancellationToken = default)
+    {
+        return await InvokeAndDeserializeAsync<TResult>(message, null, null, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<TResult?> InvokeAndDeserializeAsync<TResult>(ChatMessageContent message, Func<string, TResult?>? customDeserializer = null,
