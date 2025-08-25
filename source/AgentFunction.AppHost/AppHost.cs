@@ -31,7 +31,6 @@ var azureCommunicationService = builder.AddConnectionString("AzureCommunicationS
 var policyApi = builder.AddProject<Projects.PolicyApi>(Shared.Services.PolicyApi)
     .WithHttpHealthCheck("/health");
 
-
 var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shared.Services.FunctionsService)
 .WithHostStorage(storage)
 .WithReference(policyApi)
@@ -45,7 +44,6 @@ var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shar
 .WithEnvironment("DURABLE_TASK_SCHEDULER_CONNECTION_STRING", azureDurableTaskSchedulerConnectionString)
 .WithEnvironment("TASKHUB_NAME", azureDurableTaskSchedulerTaskHubName)
 .WithEnvironment("SENDER_EMAIL_ADDRESS", senderEmailAddress)
-// .WithEnvironment("RECIPIENT_EMAIL_ADDRESS", recipientEmailAddress)
 .WithEnvironment("MCP_SERVER_URL", policyApi.GetEndpoint("http"))
 .WithExternalHttpEndpoints();
 
