@@ -73,7 +73,6 @@ public static class ClaimOrchestrator
 
                 var winner = await Task.WhenAny(fraudReviewTask, durableTimeout);
 
-                // if (fraudReviewResult == await Task.WhenAny(fraudReviewResult, durableTimeout))
                 if (winner == fraudReviewTask)
                 {
                     timeoutCts.Cancel();
