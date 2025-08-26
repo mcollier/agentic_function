@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../AgentFunction.ClaimsAgent/AgentFunction.ClaimsAgent.csproj" AspireProjectMetadataTypeName="ClaimsAgentService" />
+    <!-- <ProjectReference Include="../AgentFunction.ClaimsAgent/AgentFunction.ClaimsAgent.csproj" AspireProjectMetadataTypeName="ClaimsAgentService" /> -->
     <ProjectReference Include="../Shared/Shared.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\AgentFunction.PolicyApi\AgentFunction.PolicyApi.csproj" AspireProjectMetadataTypeName="PolicyApi" />
     <ProjectReference Include="..\AgentFunction.Web\AgentFunction.Web.csproj" />

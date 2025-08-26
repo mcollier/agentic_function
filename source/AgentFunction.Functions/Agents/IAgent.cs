@@ -1,4 +1,4 @@
-namespace AgentFunction.Functions;
+namespace AgentFunction.Functions.Agents;
 
 public interface IAgent<TIn, TOut>
 {

@@ -17,7 +17,7 @@ public sealed class CompletenessAgent(Kernel kernel, ILogger<CompletenessAgent> 
                             
                             Goal:
                             - Inspect a FNOL JSON payload.
-                            - Identify missing or inconsistent fields vs. the FNOL schema.
+                            - Identify all missing or inconsistent fields vs. the FNOL schema.
                             - Generate clarifying questions for the customer to fill in missing information.
                             - Use JSON Pointer paths to indicate missing fields, e.g., '/parties/0/contact/phone'.
 
@@ -42,6 +42,7 @@ public sealed class CompletenessAgent(Kernel kernel, ILogger<CompletenessAgent> 
         var userMessage = new ChatMessageContent(
             role: AuthorRole.User,
             content: $"Analyze this FNOL JSON for missing/inconsistent fields and produce the required JSON output.\n" +
+                     $"You may call the get_fnol_schema function to retrieve the FNOL schema.\n" +
                      //  $"You may call functions to assist in your analysis.\n" +
                      //  $"You may call SchemaTools.GetFnolSchemaAsync() and SchemaTools.GetEnumValues(field).\n" +
                      $"FNOL JSON:\n" +

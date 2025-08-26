@@ -9,7 +9,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AgentFunction.Functions.Agents;
 
-public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
+public abstract partial class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
 {
     protected readonly ChatCompletionAgent _agent;
     protected readonly ILogger _logger;
@@ -112,7 +112,7 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
         ChatMessageContent? chatMessageContent = null;
         try
         {
-            // Log the agent name and first part of instructions.
+            // Log the agent name and first 80 characters of instructions.
             _logger.LogInformation("Invoking agent `{AgentName}` with instructions `{Instructions}`.",
                 _agent.Name,
                 _agent.Instructions?[..80]);
@@ -139,10 +139,11 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
         {
             usage = u;
 
-            OpenAI.Chat.ChatTokenUsage? usageDetails = usage as OpenAI.Chat.ChatTokenUsage;
-
-            _logger.LogInformation("Agent `{AuthorName}` with model `{ModelId}` used {InputTokenCount} input tokens and {OutputTokenCount} output tokens.",
-            chatMessageContent.AuthorName, chatMessageContent.ModelId, usageDetails?.InputTokenCount, usageDetails?.OutputTokenCount);
+            if (usage is OpenAI.Chat.ChatTokenUsage usageDetails)
+            {
+                _logger.LogInformation("Agent `{AuthorName}` with model `{ModelId}` used {InputTokenCount} input tokens and {OutputTokenCount} output tokens.",
+                chatMessageContent.AuthorName, chatMessageContent.ModelId, usageDetails.InputTokenCount, usageDetails.OutputTokenCount);
+            }
         }
 
         return new AgentResponse(chatMessageContent?.Content, usage, chatMessageContent);
@@ -170,23 +171,19 @@ public abstract class AgentBase<TInput, TOutput> : IAgent<TInput, TOutput>
 
         _logger.LogDebug("Raw agent response: {Raw}", raw);
 
-        // strip code fences if present ...
-        if (raw.StartsWith("```"))
-        {
-            var s = raw.IndexOf('\n'); var e = raw.LastIndexOf("```", StringComparison.Ordinal);
-            if (s > 0 && e > s) raw = raw[(s + 1)..e].Trim();
-        }
+        // strip code fences if present (moved to helper to enable unit testing)
+        var cleaned = ResponseCleaner.StripCodeFence(raw) ?? raw!;
 
-        _logger.LogDebug("Cleaned agent response: {Raw}", raw);
+        _logger.LogDebug("Cleaned agent response: {Raw}", cleaned);
 
         try
         {
             if (customDeserializer is not null)
             {
-                return customDeserializer(raw);
+                return customDeserializer(cleaned);
             }
 
-            return JsonSerializer.Deserialize<TResult>(raw, _jsonOptions);
+            return JsonSerializer.Deserialize<TResult>(cleaned, _jsonOptions);
         }
         catch (JsonException je)
         {

@@ -28,13 +28,14 @@ var azureOpenAi = builder.AddAzureOpenAI(Shared.Services.AzureOpenAI)
 // Existing Azure Communication Service connection string
 var azureCommunicationService = builder.AddConnectionString("AzureCommunicationServiceConnectionString");
 
+// Policy API for finding prior claims for a given policy
 var policyApi = builder.AddProject<Projects.PolicyApi>(Shared.Services.PolicyApi)
     .WithHttpHealthCheck("/health");
 
+// Azure Durable Function project for orchestration of multiple agents
 var functions = builder.AddAzureFunctionsProject<Projects.FunctionsService>(Shared.Services.FunctionsService)
 .WithHostStorage(storage)
 .WithReference(policyApi)
-.WithReference(queues)
 .WithReference(blobs)
 .WithReference(azureCommunicationService)
 .WithReference(azureOpenAi)

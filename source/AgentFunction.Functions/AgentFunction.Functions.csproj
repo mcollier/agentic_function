@@ -34,7 +34,7 @@
     <PackageReference Include="ModelContextProtocol" Version="0.3.0-preview.3" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../AgentFunction.Models/AgentFunction.Models.csproj" />
+    <!-- <ProjectReference Include="../AgentFunction.Models/AgentFunction.Models.csproj" /> -->
     <ProjectReference Include="../Shared/Shared.csproj" />
     <ProjectReference Include="..\AgentFunction.ServiceDefaults\AgentFunction.ServiceDefaults.csproj" />
   </ItemGroup>
@@ -49,9 +49,9 @@
     <None Update="fnol.schema.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="samples/prior-claims/*.json">
+    <!-- <None Update="samples/prior-claims/*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </None> -->
     <None Update="samples/policies/*.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
