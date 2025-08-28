@@ -18,16 +18,4 @@ public sealed class SchemaTools
         return File.ReadAllTextAsync(path, Encoding.UTF8);
     }
 
-    // Returns canonical enum values for specific fields (extend as needed)
-    // [KernelFunction("get_enum_values_for_field")]
-    // [Description("List canonical enum values for fields (e.g., party roles).")]
-    // public static List<string> GetEnumValues(
-    //     [Description("Field name (e.g., 'party.role')")] string field)
-    // {
-    //     return field.ToLowerInvariant() switch
-    //     {
-    //         "party.role" => ["insured", "third_party", "witness", "claimant"],
-    //         _ => []
-    //     };
-    // }
 }

@@ -53,7 +53,6 @@ public static class ClaimOrchestrator
         // 3) Fan-out on CANONICAL
         var coverageTask = context.CallActivityAsync<CoverageResult>(nameof(CoverageActivity.RunCoverage), canonical);
         var fraudTask = context.CallActivityAsync<FraudResult>(nameof(FraudActivity.RunFraud), canonical);
-        //     var timelineTask = context.CallActivityAsync<Timeline>("BuildTimeline", fnol); // or canonical
 
         await Task.WhenAll(coverageTask, fraudTask);
 
