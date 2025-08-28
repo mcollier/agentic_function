@@ -24,10 +24,10 @@ builder.AddAzureBlobServiceClient(Services.AzureStorageBlobs);
 
 builder.ConfigureFunctionsWebApplication();
 
-builder.Services.AddHttpClient("claimsagent", (client) =>
-{
-    client.BaseAddress = new($"https+http://{Services.ClaimsAgentService}");
-});
+// builder.Services.AddHttpClient("claimsagent", (client) =>
+// {
+//     client.BaseAddress = new($"https+http://{Services.ClaimsAgentService}");
+// });
 
 string? acsConnString = builder.Configuration.GetConnectionString("AzureCommunicationServiceConnectionString");
 builder.Services.AddSingleton(sp =>
@@ -39,10 +39,7 @@ builder.Services.AddSingleton(sp =>
     return new EmailClient(acsConnString);
 });
 
-// Load AgentSettings from configuration
-// builder.Services.AddOptions<AgentSettings>().BindConfiguration("Agents");
-
-AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
+// AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
 
 // Enable diagnostics.
 AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnostics", true);
@@ -58,8 +55,7 @@ builder.Services.AddOpenTelemetry().WithTracing(b => b.AddSource("Microsoft.Sema
 // An alternative approach to enabling metrics can be found here: https://learn.microsoft.com/en-us/semantic-kernel/concepts/enterprise-readiness/observability/telemetry-with-aspire-dashboard?tabs=Powershell&pivots=programming-language-csharp
 builder.Services.AddOpenTelemetry().WithMetrics(b => b.AddMeter("Microsoft.SemanticKernel*"));
 
-
-
+// Use Aspire Azure OpenAI client integration.
 builder.AddAzureOpenAIClient(
     connectionName: Services.AzureOpenAI,
     configureClientBuilder: clientBuilder =>
@@ -121,11 +117,9 @@ static async Task AddAIServices(FunctionsApplicationBuilder builder)
         // Set up MCP tools
         kernelBuilder.Plugins.AddFromFunctions("ClaimHistory", mcpTools.Select(aiFunction => aiFunction.AsKernelFunction()));
 
-        // TODO: Add plugins here
+        // Add plugins here
         kernelBuilder.Plugins.AddFromType<SchemaTools>("SchemaTools");
         kernelBuilder.Plugins.AddFromType<PolicyTools>("PolicyTools");
-        // kernelBuilder.Plugins.AddFromType<PriorClaimsTools>("PriorClaimsTools");
-
 
         return kernelBuilder.Build();
     });

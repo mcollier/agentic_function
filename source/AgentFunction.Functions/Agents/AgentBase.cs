@@ -117,14 +117,11 @@ public abstract partial class AgentBase<TInput, TOutput> : IAgent<TInput, TOutpu
                 _agent.Name,
                 _agent.Instructions?[..80]);
 
-            IAsyncEnumerable<AgentResponseItem<ChatMessageContent>> response =
-                _agent.InvokeAsync(message: message,
-                                   options: options,
-                                   cancellationToken: ct);
-
-            await foreach (AgentResponseItem<ChatMessageContent> item in response.ConfigureAwait(false))
+            await foreach (ChatMessageContent response in _agent.InvokeAsync(message: message,
+                                               options: options,
+                                               cancellationToken: ct).ConfigureAwait(false))
             {
-                chatMessageContent = item.Message;
+                chatMessageContent = response;
                 break;
             }
         }

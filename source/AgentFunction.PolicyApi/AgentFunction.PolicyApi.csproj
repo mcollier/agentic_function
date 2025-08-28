@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../AgentFunction.Models/AgentFunction.Models.csproj" />
     <ProjectReference Include="..\AgentFunction.ServiceDefaults\AgentFunction.ServiceDefaults.csproj" />
   </ItemGroup>
 
