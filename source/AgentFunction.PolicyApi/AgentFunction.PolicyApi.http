@@ -1,0 +1,7 @@
+@hostAddress = http://localhost:5476
+
+GET {{hostAddress}}/api/policy/P-98765/claims HTTP/1.1
+
+###
+
+GET {{hostAddress}}/api/policy/P-12345/claims HTTP/1.1
