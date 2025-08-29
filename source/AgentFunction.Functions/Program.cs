@@ -24,11 +24,6 @@ builder.AddAzureBlobServiceClient(Services.AzureStorageBlobs);
 
 builder.ConfigureFunctionsWebApplication();
 
-// builder.Services.AddHttpClient("claimsagent", (client) =>
-// {
-//     client.BaseAddress = new($"https+http://{Services.ClaimsAgentService}");
-// });
-
 string? acsConnString = builder.Configuration.GetConnectionString("AzureCommunicationServiceConnectionString");
 builder.Services.AddSingleton(sp =>
 {
@@ -38,8 +33,6 @@ builder.Services.AddSingleton(sp =>
     }
     return new EmailClient(acsConnString);
 });
-
-// AppContext.SetSwitch("OpenAI.Experimental.EnableOpenTelemetry", true);
 
 // Enable diagnostics.
 AppContext.SetSwitch("Microsoft.SemanticKernel.Experimental.GenAI.EnableOTelDiagnostics", true);
