@@ -112,10 +112,14 @@ public abstract partial class AgentBase<TInput, TOutput> : IAgent<TInput, TOutpu
         ChatMessageContent? chatMessageContent = null;
         try
         {
+            string? instructionsSnippet = _agent.Instructions is not null
+                    ? _agent.Instructions.Substring(0, Math.Min(_agent.Instructions.Length, 80))
+                    : null;
+                    
             // Log the agent name and first 80 characters of instructions.
             _logger.LogInformation("Invoking agent `{AgentName}` with instructions `{Instructions}`.",
                 _agent.Name,
-                _agent.Instructions?[..80]);
+                instructionsSnippet);
 
             await foreach (ChatMessageContent response in _agent.InvokeAsync(message: message,
                                                options: options,

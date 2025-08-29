@@ -4,7 +4,6 @@ using Xunit;
 
 namespace AgentFunction.Tests;
 
-
 public class ClaimHistoryServiceTests
 {
     private readonly ClaimHistoryService _service;
