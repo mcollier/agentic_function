@@ -7,12 +7,12 @@ namespace AgentFunction.Functions.Activities;
 
 public class CompletenessActivity(CompletenessAgent completenessAgent)
 {
-    [Function(nameof(RunCompletnessAssessment))]
-    public async Task<CompletenessResult> RunCompletnessAssessment(
+    [Function(nameof(RunCompletenessAssessment))]
+    public async Task<CompletenessResult> RunCompletenessAssessment(
         [ActivityTrigger] FnolClaim claim,
         FunctionContext context)
     {
-        ILogger logger = context.GetLogger(nameof(RunCompletnessAssessment));
+        ILogger logger = context.GetLogger(nameof(RunCompletenessAssessment));
 
         return await completenessAgent.ProcessAsync(claim);
     }
