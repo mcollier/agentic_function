@@ -85,7 +85,7 @@ public class ClaimHistoryService : IClaimHistoryService
                     Name = "Alice Johnson",
                     Contact = new ClaimHistoryContact
                     {
-                        Phone = "555-555-123-4567",
+                        Phone = "555-555-1234",
                         Email = "alice.johnson@example.com"
                     }
                 }
