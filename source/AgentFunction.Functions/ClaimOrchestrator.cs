@@ -20,7 +20,7 @@ public static class ClaimOrchestrator
             ?? throw new ArgumentNullException(nameof(context), "No claim data provided to orchestration.");
 
         // 1 - Completeness check over Raw FNOL
-        var completenessResult = await context.CallActivityAsync<CompletenessResult>(nameof(CompletenessActivity.RunCompletnessAssessment), fnolClaim);
+        var completenessResult = await context.CallActivityAsync<CompletenessResult>(nameof(CompletenessActivity.RunCompletenessAssessment), fnolClaim);
 
         if (completenessResult.MissingFields.Count == 0)
         {
