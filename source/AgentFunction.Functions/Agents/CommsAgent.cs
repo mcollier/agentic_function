@@ -30,7 +30,7 @@ public sealed class CommsAgent(Kernel kernel, ILogger<CommsAgent> logger) :
                                 
                                 ## OUTPUT (STRICT JSON, no markdown)
                                     {
-                                        ""email"": { ""subject"": ""string"", ""body"": ""valid HTML body"", ""recipientEmailAddress"": ""string"", "recipientName"": ""string"" },
+                                        ""email"": { ""subject"": ""string"", ""body"": ""valid HTML body"", ""recipientEmailAddress"": ""string"", ""recipientName"": ""string"" },
                                         ""sms"": ""string <= 320 chars""
                                     }
                             
