@@ -39,7 +39,7 @@
     // }
     // Use 'postCreateCommand' to run commands after the container is created.
     // "postCreateCommand": "dotnet restore",
-    "onCreateCommand": "npm install -g azure-functions-core-tools@4.0.7332-preview1 && dotnet tool install --global aspire.cli && dotnet new install Aspire.ProjectTemplates --force",
+    "onCreateCommand": "npm install -g azure-functions-core-tools@4.0.7332-preview1 && dotnet tool install --global aspire.cli --version 9.4.0 && dotnet new install Aspire.ProjectTemplates::9.4.0 --force",
     "postStartCommand": "dotnet build source/AgentFunction.sln && dotnet dev-certs https --trust",
     "customizations": {
         "vscode": {
