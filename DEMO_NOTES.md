@@ -44,7 +44,7 @@
 
 1. Show 4 from .http 
 2. Open Durable Task Scheduler
-3. Show workflow is paused by timmer
+3. Show workflow is paused by timer
 4. Raise Event - `FraudReviewCompleted` w/ `true`
 5. Show file in blob storage
 6. Show email received
