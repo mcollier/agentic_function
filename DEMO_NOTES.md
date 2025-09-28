@@ -1,6 +1,7 @@
 # My Demo Notes
 
 ## Aspire Demo
+
 1. Expand AppHost project
 2. Show AppHost.cs
 3. Show appsettings.Development.json
@@ -11,7 +12,7 @@
     2. Durable Task Scheduler emulator
     3. ASP.NET API project
     4. Azure Function project
-7. Aspire uses enviornment variable convention to pass references to my Function project
+7. Aspire uses environment variable convention to pass references to my Function project
 
 ## Full Workflow Demo
 
@@ -47,4 +48,3 @@
 4. Raise Event - `FraudReviewCompleted` w/ `true`
 5. Show file in blob storage
 6. Show email received
-
