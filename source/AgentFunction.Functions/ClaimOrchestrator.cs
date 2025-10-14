@@ -57,7 +57,7 @@ public static class ClaimOrchestrator
         await Task.WhenAll(coverageTask, fraudTask);
 
         // If the fraud score is above a certain threshold, we might want to halt further processing or flag for review
-        if (fraudTask.Result.Score > 0.6)
+        if (fraudTask.Result.Score >= 0.6)
         {
             logger.LogWarning("High fraud risk detected: {Score}. Further investigation required.", fraudTask.Result.Score);
 
